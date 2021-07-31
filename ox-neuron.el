@@ -208,8 +208,8 @@ INFO is a plist used as a communication channel."
     (make-directory entry-path :parents)
     (file-truename entry-path)))
 
-(defun org-neuron-export-to-md (&optional subtreep visible-only)
-  "Export current buffer to a Neuron-compatible Markdown file.
+(defun org-neuron-export-to-md (outfile &optional subtreep visible-only)
+  "Export current buffer to a Neuron OUTFILE.
 
 If narrowing is active in the current buffer, only export its
 narrowed part.
@@ -231,16 +231,11 @@ Return output file's name."
   ;; important to set the `org-use-property-inheritance' before
   ;; setting the `info' var so that properties like
   ;; EXPORT_HUGO_SECTION get inherited.
-  (let* ((entry (org-element-at-point))
-         (org-use-property-inheritance
-          (org-hugo--selective-property-inheritance))
-         (info (org-combine-plists
+  (let* ((info (org-combine-plists
                 (org-export--get-export-attributes
                  'neuron subtreep visible-only)
                 (org-export--get-buffer-attributes)
-                (org-export-get-environment 'neuron subtreep)))
-         (pub-dir (org-neuron--get-pub-dir info))
-         (outfile (concat pub-dir (org-neuron--get-post-name entry) ".md")))
+                (org-export-get-environment 'neuron subtreep))))
     (prog1
         (org-export-to-file 'neuron outfile nil subtreep visible-only)
       (org-hugo--after-export-function info outfile))))
@@ -256,6 +251,8 @@ Return output file's name."
 
 Internal links to other subtrees are converted to external
 links."
+  ;; Narrow down to just this subtree
+  (org-narrow-to-subtree)
   (let* ((buffer (generate-new-buffer (concat "*Ox-neuron Pre-processed "
                                               (buffer-name)
                                               " *")))
@@ -301,7 +298,66 @@ links."
         ;; Turn the AST with updated links into an Org document.
         (insert (org-element-interpret-data ast))
         (set-buffer-modified-p nil)))
+    ;; Return base buffer to it's original state and return the buffer
+    (org-toggle-narrow-to-subtree)
     buffer))
+
+(defun org-neuron--export-subtree (subtree &optional visible-only)
+  "Given a SUBTREE, export it to an MD file.
+
+Note: This is an internal function, use `org-neuron-export-wim-to-md'
+instead.
+
+VISIBLE-ONLY controls whether to include hidden elements or not."
+  (message "[ox-neuron--export-subtree DBG] Subtree: %s, Starting"
+           (org-element-property :title subtree))
+  (let* ((info (org-combine-plists
+                (org-export--get-export-attributes
+                 'neuron subtree visible-only)
+                (org-export--get-buffer-attributes)
+                (org-export-get-environment 'neuron subtree)))
+         (exclude-tags (plist-get info :exclude-tags))
+         (is-commented (org-element-property :commentedp subtree))
+         (title (org-element-property :title subtree))
+         is-excluded matched-exclude-tag ret)
+    (message "[ox-neuron--export-subtree DBG] Subtree: %s, Info built"
+             title)
+    (let ((all-tags (let ((org-use-tag-inheritance t))
+                      (org-hugo--get-tags))))
+      (when all-tags
+        (dolist (exclude-tag exclude-tags)
+          (when (member exclude-tag all-tags)
+            (setq matched-exclude-tag exclude-tag)
+            (setq is-excluded t)))))
+    (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Tags Built"
+             title)
+    (cond
+     (is-commented
+      (message "[ox-neuron] `%s' was not exported (commented out)"
+               title))
+     (is-excluded
+      (message "[ox-neuron] `%s' was not exported (exclude tag `%s')"
+               title
+               matched-exclude-tag))
+     (t
+      (message "[ox-neuron] Exporting `%s', Starting" title)
+      (let* ((entry (org-element-at-point))
+             (org-use-property-inheritance
+              (org-hugo--selective-property-inheritance))
+             (info (org-combine-plists
+                    (org-export--get-export-attributes
+                     'neuron t visible-only)
+                    (org-export--get-buffer-attributes)
+                    (org-export-get-environment 'neuron t)))
+             (pub-dir (org-neuron--get-pub-dir info))
+             (outfile (concat pub-dir (org-neuron--get-post-name entry) ".md"))
+             (buffer (org-neuron--get-pre-processed-buffer)))
+        (with-current-buffer buffer
+          (setq ret (org-neuron-export-to-md outfile :subtreep visible-only)))
+        (kill-buffer buffer))))
+    (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Returning"
+             title)
+    ret))
 
 (defun org-neuron--export-subtree-to-md (&optional visible-only)
   "Export the current subtree to a Hugo post.
@@ -326,51 +382,7 @@ contents of hidden elements.
   (let ((subtree (org-neuron--get-valid-subtree)))
     (if subtree
         ;; If subtree is a valid post subtree, proceed ..
-        (progn
-          (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Point 1"
-                   (org-element-property :title subtree))
-          (let* ((info (org-combine-plists
-                        (org-export--get-export-attributes
-                         'neuron subtree visible-only)
-                        (org-export--get-buffer-attributes)
-                        (org-export-get-environment 'neuron subtree)))
-                 (exclude-tags (plist-get info :exclude-tags))
-                 (is-commented (org-element-property :commentedp subtree))
-                 is-excluded matched-exclude-tag ret)
-            (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Point 2"
-                     (org-element-property :title subtree))
-            (let ((all-tags (let ((org-use-tag-inheritance t))
-                              (org-hugo--get-tags))))
-              (when all-tags
-                (dolist (exclude-tag exclude-tags)
-                  (when (member exclude-tag all-tags)
-                    (setq matched-exclude-tag exclude-tag)
-                    (setq is-excluded t)))))
-            (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Point 3"
-                     (org-element-property :title subtree))
-            (let ((title (org-element-property :title subtree)))
-              (cond
-               (is-commented
-                (message "[ox-hugo] `%s' was not exported as that subtree
-is commented"
-                         title))
-               (is-excluded
-                (message "[ox-hugo] `%s' was not exported as
-it is tagged with an exclude tag `%s'"
-                         title
-                         matched-exclude-tag))
-               (t
-                (message "[ox-hugo] Exporting `%s' .." title)
-                (let ((current-outline-path (org-get-outline-path :with-self))
-                      (buffer (org-neuron--get-pre-processed-buffer)))
-                  (with-current-buffer buffer
-                    (goto-char (org-find-olp current-outline-path :this-buffer))
-                    (setq ret
-                          (org-neuron-export-to-md :subtreep visible-only)))
-                  (kill-buffer buffer)))))
-            (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Returning"
-                     (org-element-property :title subtree))
-            ret))
+        (org-neuron--export-subtree subtree visible-only)
 
       ;; If the point is not in a valid subtree, check if there's a
       ;; valid subtree elsewhere in the same Org file.

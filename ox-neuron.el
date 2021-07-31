@@ -78,6 +78,7 @@ This function defers to `org-hugo-link' for everything other than
 
 DESC is the link's description.
 INFO is a plist used as a communication channel."
+  (message "[org-neuron-link DBG] %s %s" link desc)
   (let* ((type (org-element-property :type link)))
     (if (member type '("custom-id" "id" "brain" "brain-child" "brain-parent" "brain-friend"))
         (let ((destination (org-element-property :path link)))
@@ -121,6 +122,16 @@ when exporting posts."
       (org-string-nw-p (org-element-property :EXPORT_FILE_NAME entry))
       (org-element-property :ID entry)))
 
+;; * This is a test element
+;; :PROPERTIES:
+;; :ID:       541a96fc-56ca-4011-8ca0-1baa3cd755bb
+;; :END:
+;; - [[brain-parent:4e18cf0b-0952-4074-9d3f-4f2497aab1e9][export org-brain notes to the neuron zettlekasten format]]
+;; (org-neuron--get-post-name (org-element-at-point))
+;; "541a96fc-56ca-4011-8ca0-1baa3cd755bb"
+;; (org-neuron--get-post-name (org-element-at-point) :title)
+;; "\"This is a test element\""
+
 (defun org-neuron--get-valid-subtree ()
   "Return the Org element for a valid Neuron post subtree.
 The condition to check validity is that the ID property is
@@ -148,12 +159,7 @@ will be moved in this case too."
         (unless level
           (throw 'break nil))))))
 
-;; * This is a test element
-;; :PROPERTIES:
-;; :ID:       541a96fc-56ca-4011-8ca0-1baa3cd755bb
-;; :END:
-;; - [[brain-parent:4e18cf0b-0952-4074-9d3f-4f2497aab1e9][export org-brain notes to the neuron zettlekasten format]]
-;; (org-element-property :ID (org-element-at-point))
+;; (org-neuron--get-valid-subtree)
 ;; "541a96fc-56ca-4011-8ca0-1baa3cd755bb"
 
 (defun org-neuron--get-entry-path (info)
@@ -219,6 +225,7 @@ contents of hidden elements.
 
 Return output file's name."
   (interactive)
+  (message "[ox-neuron-export-to-md DBG] Starting %s %s" subtreep visible-only)
   (org-hugo--before-export-function subtreep)
   ;; Allow certain `ox-hugo' properties to be inherited.  It is
   ;; important to set the `org-use-property-inheritance' before
@@ -396,7 +403,7 @@ This is an Export \"What I Mean\" function:
 When optional argument VISIBLE-ONLY is non-nil, don't export
 contents of hidden elements."
   (interactive "P")
-  ;; (message "[ox-neuron-export-wim-to-md DBG] %s %s" visible-only)
+  (message "[ox-neuron-export-wim-to-md DBG] Starting %s" visible-only)
   (let (ret)
     (save-window-excursion
       (save-restriction

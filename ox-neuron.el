@@ -66,7 +66,8 @@ property for export."
   :translate-alist
   '((link . org-neuron-link))
   :options-alist
-  '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)))
+  '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
+    (:with-drawers nil nil nil)))
 
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.

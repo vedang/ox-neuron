@@ -213,7 +213,7 @@ INFO is a plist used as a communication channel."
     (make-directory entry-path :parents)
     (file-truename entry-path)))
 
-(defun org-neuron-export-to-md (outfile &optional subtreep visible-only)
+(defun org-neuron-export-to-md (outfile &optional visible-only)
   "Export current buffer to a Neuron OUTFILE.
 
 If narrowing is active in the current buffer, only export its
@@ -221,28 +221,24 @@ narrowed part.
 
 If a region is active, export that region.
 
-When optional argument SUBTREEP is non-nil, export the sub-tree
-at point, extracting information from the headline properties
-first.
-
 When optional argument VISIBLE-ONLY is non-nil, don't export
 contents of hidden elements.
 
 Return output file's name."
   (interactive)
-  (message "[ox-neuron-export-to-md DBG] Starting %s %s" subtreep visible-only)
-  (org-hugo--before-export-function subtreep)
+  (message "[ox-neuron-export-to-md DBG] Starting")
+  (org-hugo--before-export-function nil)
   ;; Allow certain `ox-hugo' properties to be inherited.  It is
   ;; important to set the `org-use-property-inheritance' before
   ;; setting the `info' var so that properties like
   ;; EXPORT_HUGO_SECTION get inherited.
   (let* ((info (org-combine-plists
                 (org-export--get-export-attributes
-                 'neuron subtreep visible-only)
+                 'neuron t visible-only)
                 (org-export--get-buffer-attributes)
-                (org-export-get-environment 'neuron subtreep))))
+                (org-export-get-environment 'neuron t))))
     (prog1
-        (org-export-to-file 'neuron outfile nil subtreep visible-only)
+        (org-export-to-file 'neuron outfile nil t visible-only)
       (org-hugo--after-export-function info outfile))))
 
 ;; (let ((entry (org-element-at-point)))
@@ -281,6 +277,7 @@ that sub-headings will be exported into their own files."
 Internal links to other subtrees are converted to external
 links."
   ;; Narrow down to just this subtree
+  (message "[org-neuron--get-pre-processed-buffer DBG]")
   (org-narrow-to-subtree)
   (let* ((buffer (generate-new-buffer (concat "*Ox-neuron Pre-processed "
                                               (buffer-name)
@@ -328,6 +325,7 @@ links."
         (org-element-map ast 'headline #'org-neuron--elem-to-id)
 
         ;; Turn the AST with updated links into an Org document.
+
         (insert (org-element-interpret-data ast))
         (set-buffer-modified-p nil)))
     ;; Return base buffer to it's original state and return the buffer
@@ -345,9 +343,9 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
            (org-element-property :title subtree))
   (let* ((info (org-combine-plists
                 (org-export--get-export-attributes
-                 'neuron subtree visible-only)
+                 'neuron t visible-only)
                 (org-export--get-buffer-attributes)
-                (org-export-get-environment 'neuron subtree)))
+                (org-export-get-environment 'neuron t)))
          (exclude-tags (plist-get info :exclude-tags))
          (is-commented (org-element-property :commentedp subtree))
          (title (org-element-property :title subtree))
@@ -365,14 +363,15 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
              title)
     (cond
      (is-commented
-      (message "[ox-neuron] `%s' was not exported (commented out)"
+      (message "[ox-neuron--export-subtree-to-md] `%s' was not exported (commented out)"
                title))
      (is-excluded
-      (message "[ox-neuron] `%s' was not exported (exclude tag `%s')"
+      (message "[ox-neuron--export-subtree-to-md] `%s' was not exported (exclude tag `%s')"
                title
                matched-exclude-tag))
      (t
-      (message "[ox-neuron] Exporting `%s', Starting" title)
+      (message "[ox-neuron--export-subtree-to-md] Exporting `%s', Starting"
+               title)
       (let* ((entry (org-element-at-point))
              (org-use-property-inheritance
               (org-hugo--selective-property-inheritance))
@@ -385,10 +384,11 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
              (outfile (concat pub-dir (org-neuron--get-post-name entry) ".md"))
              (buffer (org-neuron--get-pre-processed-buffer)))
         (with-current-buffer buffer
-          (setq ret (org-neuron-export-to-md outfile :subtreep visible-only)))
+          (goto-char (point-min))
+          (setq ret (org-neuron-export-to-md outfile visible-only)))
         (kill-buffer buffer))))
-    (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Returning"
-             title)
+    ;; (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Returning"
+    ;;          title)
     ret))
 
 (defun org-neuron--export-subtree-to-md (&optional visible-only)

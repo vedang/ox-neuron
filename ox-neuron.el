@@ -132,6 +132,10 @@ when exporting posts."
 ;; (org-neuron--get-post-name (org-element-at-point) :title)
 ;; "\"This is a test element\""
 
+(defun org-neuron--valid-subtree (elem)
+  "Return t if ELEM is a valid subtree, else nil."
+  (org-element-property :ID elem))
+
 (defun org-neuron--get-valid-subtree ()
   "Return the Org element for a valid Neuron post subtree.
 The condition to check validity is that the ID property is
@@ -146,7 +150,7 @@ will be moved in this case too."
   (catch 'break
     (while :infinite
       (let* ((entry (org-element-at-point))
-             (valid (org-element-property :ID entry))
+             (valid (org-neuron--valid-subtree entry))
              (fname (org-neuron--get-post-name entry))
              level)
         (when (and valid fname)

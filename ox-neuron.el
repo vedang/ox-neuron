@@ -247,29 +247,55 @@ Return output file's name."
 ;;           ".md"))
 ;; ;; => "../18-parvans-the-index/e2bc89e2-5ad7-4d13-990c-f870d2f65b27.md"
 
-(defun org-neuron--elem-to-id (elem)
+(defvar org-neuron--seen-headings '()
+  "Internal variable for the elem-to-id translation.")
+
+(defun org-neuron--elem-to-id (menu-headline elem)
   "Given an ELEM, convert it to an ID/Brain link.
+
+Attach the ID / Brain link to the MENU-HEADLINE, for use later.
+SEEN-HEADINGS tracks sub-headings that have been processed. This
+helps avoid processing of sub-sub-headings.
 
 This is done only if the elem is a sub-heading. It is expected
 that sub-headings will be exported into their own files."
-  (message "[org-neuron--elem-to-id DBG] Elem: %s"
-           (org-element-property :title elem))
+  (message "[org-neuron--elem-to-id DBG]")
+  ;; (message "[org-neuron--elem-to-id DBG] Elem: %s, Menu: %s"
+  ;;          elem menu-headline)
   (let ((parent (org-element-property :parent elem)))
-    ;; We only care about sub-headings
+    ;; We only care about valid sub-headings
     (if (and (eq (org-element-type elem) 'headline)
-             (eq (org-element-type parent) 'headline))
-        ;; Replace the sub-heading with a link to the appropriate entry
-        (org-element-set-element
-         elem
-         (org-element-create
-          'paragraph
-          (list :post-blank 1 :pre-blank 2)
-          ;; Create a brain-child link to maintain the correct foggel links.
-          ;; @TODO: Re-visit this to consider using simple links later.
-          (org-element-create
-           'link
-           (list :type "brain-child" :path (org-element-property :ID elem)))))
-      elem)))
+             (eq (org-element-type parent) 'headline)
+             (org-neuron--valid-subtree elem)
+             (not (memq (org-element-property :ID parent)
+                        org-neuron--seen-headings)))
+        ;; Replace the sub-heading with a link to the appropriate entry.
+        ;; Attach the new link object to the menu
+        ;; Remove the sub-heading completely.
+        (progn
+          (message "[org-neuron--elem-to-id DBG] extracting %s %s"
+                   (org-element-type elem)
+                   (org-element-property :title elem))
+          (org-element-adopt-elements
+              menu-headline
+            (org-element-create
+             'paragraph
+             (list :post-blank 1 :pre-blank 2)
+             ;; Create a brain-child link to maintain the correct foggel links.
+             ;; @TODO: Re-visit this to consider using simple links later.
+             (org-element-create
+              'link
+              (list :type "brain-child" :path (org-element-property :ID elem)))))
+          (org-element-extract-element elem)
+          ;; Return empty so that return value is discarded.
+          (setq org-neuron--seen-headings
+                (cons (org-element-property :ID elem)
+                      org-neuron--seen-headings))
+          nil)
+      (progn (message "[org-neuron--elem-to-id DBG] ignoring %s %s"
+                      (org-element-type elem)
+                      (org-element-property :title elem))
+             elem))))
 
 (defun org-neuron--get-pre-processed-buffer ()
   "Return a pre-processed copy of the current buffer.
@@ -322,8 +348,40 @@ links."
               (org-element-adopt-elements block ""))))
 
         ;; Convert all sub-headings into brain-children / IDs
-        (org-element-map ast 'headline #'org-neuron--elem-to-id)
+        (let* ((main-headline (org-element-map ast 'headline
+                                (lambda (hl)
+                                  (when (not (eq (org-element-type
+                                                  (org-element-property :parent hl))
+                                                 'headline))
+                                    hl))
+                                nil t))
+               (insert-location (org-element-map ast 'headline
+                                  (lambda (hl)
+                                    (when (eq (org-element-type
+                                               (org-element-property :parent hl))
+                                              'headline)
+                                      hl))
+                                  nil t))
+               (menu-title "Children")
+               (menu-headline (when insert-location
+                                (org-element-create
+                                 'headline
+                                 (list :level (+ 1
+                                                 (org-element-property
+                                                  :level main-headline))
+                                       :title menu-title
+                                       :raw-value menu-title
+                                       :pre-blank 1
+                                       :post-blank 1)))))
+          ;; (message "[ox-neuron--preprocessing DBG] Main: %s, Insert at: %s, Menu: %s"
+          ;;          main-headline insert-location menu-headline)
+          (when menu-headline
+            (org-element-insert-before menu-headline insert-location)
+            (setq org-neuron--seen-headings nil)
+            (org-element-map ast 'headline
+              (apply-partially #'org-neuron--elem-to-id menu-headline))))
 
+        (message "[ox-neuron--preprocessing DBG] AST: %s" ast)
         ;; Turn the AST with updated links into an Org document.
 
         (insert (org-element-interpret-data ast))

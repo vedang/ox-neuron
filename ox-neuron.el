@@ -161,40 +161,41 @@ will be moved in this case too."
 
 ;; (org-neuron--get-valid-subtree)
 ;; "541a96fc-56ca-4011-8ca0-1baa3cd755bb"
+(defun org-neuron--build-path (base-dir dir-paths)
+  "Take the BASE-DIR and DIR-PATHS collected in processing an entry.
+
+Build a path from BASE-DIR to this location using this information."
+  (message "[org-neuron--build-path DBG] %s %s" base-dir dir-paths)
+  (concat base-dir (mapconcat #'identity (reverse dir-paths) "/") "/"))
 
 (defun org-neuron--get-entry-path (info)
   "Return the dir structure under which this Neuron post lives.
 
-As this function is intended to be called inside a valid Neuron
-post subtree, doing so also moves the point to the beginning of
-the heading of that subtree.
-
-Return nil if a valid post subtree is not found. The point will
-be moved in this case too.
-
-INFO is the communication channel."
-  (let* ((base-dir (if (plist-get info :neuron-base-dir)
-                       (file-name-as-directory
-                        (plist-get info :neuron-base-dir))
-                     (user-error "It is mandatory to set the NEURON_BASE_DIR
+Return nil if a valid post subtree is not found. INFO is the
+communication channel."
+  (save-excursion
+    (let* ((base-dir (if (plist-get info :neuron-base-dir)
+                         (file-name-as-directory
+                          (plist-get info :neuron-base-dir))
+                       (user-error "It is mandatory to set the NEURON_BASE_DIR
 property or the `org-neuron-base-dir' local variable")))
-         (level (org-up-heading-safe))
-         (dir-path base-dir))
-    (if level
-        (catch 'break
-          (while :infinite
-            (let* ((entry (org-neuron--get-valid-subtree))
-                   (fname (org-neuron--get-post-name entry :title)))
-              (when (not entry)
-                (throw 'break dir-path))
-              (setq dir-path (concat dir-path fname "/"))
-              ;; Keep on jumping to the parent heading if the current entry
-              ;; does not have an EXPORT_FILE_NAME property or ID property.
-              (setq level (org-up-heading-safe))
-              ;; If all levels are exhausted, break
-              (unless level
-                (throw 'break dir-path)))))
-      dir-path)))
+           (level (org-up-heading-safe))
+           (dir-paths '()))
+      (if level
+          (catch 'break
+            (while :infinite
+              (let* ((entry (org-neuron--get-valid-subtree))
+                     (fname (org-neuron--get-post-name entry :title)))
+                (when (not entry)
+                  (throw 'break (org-neuron--build-path base-dir dir-paths)))
+                (setq dir-paths (append dir-paths (list fname)))
+                ;; Keep on jumping to the parent heading if the current entry
+                ;; does not have an EXPORT_FILE_NAME property or ID property.
+                (setq level (org-up-heading-safe))
+                ;; If all levels are exhausted, break
+                (unless level
+                  (throw 'break (org-neuron--build-path base-dir dir-paths))))))
+        base-dir))))
 
 ;;;; Publication Directory
 (defun org-neuron--get-pub-dir (info)

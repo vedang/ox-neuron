@@ -247,6 +247,30 @@ Return output file's name."
 ;;           ".md"))
 ;; ;; => "../18-parvans-the-index/e2bc89e2-5ad7-4d13-990c-f870d2f65b27.md"
 
+(defun org-neuron--elem-to-id (elem)
+  "Given an ELEM, convert it to an ID/Brain link.
+
+This is done only if the elem is a sub-heading. It is expected
+that sub-headings will be exported into their own files."
+  (message "[org-neuron--elem-to-id DBG] Elem: %s"
+           (org-element-property :title elem))
+  (let ((parent (org-element-property :parent elem)))
+    ;; We only care about sub-headings
+    (if (and (eq (org-element-type elem) 'headline)
+             (eq (org-element-type parent) 'headline))
+        ;; Replace the sub-heading with a link to the appropriate entry
+        (org-element-set-element
+         elem
+         (org-element-create
+          'paragraph
+          (list :post-blank 1 :pre-blank 2)
+          ;; Create a brain-child link to maintain the correct foggel links.
+          ;; @TODO: Re-visit this to consider using simple links later.
+          (org-element-create
+           'link
+           (list :type "brain-child" :path (org-element-property :ID elem)))))
+      elem)))
+
 (defun org-neuron--get-pre-processed-buffer ()
   "Return a pre-processed copy of the current buffer.
 
@@ -295,6 +319,9 @@ links."
           (lambda (block)
             (when (null (org-element-contents block))
               (org-element-adopt-elements block ""))))
+
+        ;; Convert all sub-headings into brain-children / IDs
+        (org-element-map ast 'headline #'org-neuron--elem-to-id)
 
         ;; Turn the AST with updated links into an Org document.
         (insert (org-element-interpret-data ast))

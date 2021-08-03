@@ -385,9 +385,10 @@ links."
                                 nil t))
                (insert-location (org-element-map ast 'headline
                                   (lambda (hl)
-                                    (when (eq (org-element-type
-                                               (org-element-property :parent hl))
-                                              'headline)
+                                    (when (and (eq (org-element-type
+                                                    (org-element-property :parent hl))
+                                                   'headline)
+                                               (org-neuron--valid-subtree hl))
                                       hl))
                                   nil t))
                (menu-title "Children")

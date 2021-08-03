@@ -67,6 +67,7 @@ property for export."
   '((link . org-neuron-link))
   :options-alist
   '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
+    (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
     (:with-drawers nil nil nil)))
 
 (defun org-neuron-link (link desc info)
@@ -78,24 +79,51 @@ This function defers to `org-hugo-link' for everything other than
 
 DESC is the link's description.
 INFO is a plist used as a communication channel."
-  (message "[org-neuron-link DBG] %s %s" link desc)
+  ;; (message "[org-neuron-link DBG] %s %s" link desc)
   (let* ((type (org-element-property :type link)))
-    (if (member type '("custom-id" "id" "brain" "brain-child" "brain-parent" "brain-friend"))
-        (let ((destination (org-element-property :path link)))
-          (pcase (org-element-property :type link)
-            ("brain-child"
-             (if desc
-                 (format "[[%s|%s]]#" destination desc)
-               (format "[[%s]]#" destination)))
-            ("brain-parent"
-             (if desc
-                 (format "#[[%s|%s]]" destination desc)
-               (format "#[[%s]]" destination)))
-            (_
-             (if desc
-                 (format "[[%s|%s]]" destination desc)
-               (format "[[%s]]" destination)))))
-      (org-hugo-link link desc info))))
+    (cond
+     ((member type '("custom-id" "id" ;; Handle ID links
+                     "brain" "brain-child" "brain-parent" "brain-friend"))
+      (let ((destination (org-element-property :path link)))
+        (pcase (org-element-property :type link)
+          ("brain-child"
+           (if desc
+               (format "[[%s|%s]]#" destination desc)
+             (format "[[%s]]#" destination)))
+          ("brain-parent"
+           (if desc
+               (format "#[[%s|%s]]" destination desc)
+             (format "#[[%s]]" destination)))
+          (_
+           (if desc
+               (format "[[%s|%s]]" destination desc)
+             (format "[[%s]]" destination))))))
+     ;; Handle Images. This is directly taken from Hugo, with
+     ;; modifications for Neuron output. Neuron only supports linking
+     ;; to files in the static folder, and this is all I am supporting
+     ;; right now.
+     ((org-export-inline-image-p link org-html-inline-image-rules)
+      (let* ((raw-path (org-element-property :path link))
+             (parent (org-export-get-parent link))
+             (parent-type (org-element-type parent))
+             ;; If this is a hyper-linked image, it's parent type will
+             ;; be a link too. Get the parent of *that* link in that
+             ;; case.
+             (grand-parent (when (eq parent-type 'link)
+                             (org-export-get-parent parent)))
+             (useful-parent (if grand-parent grand-parent parent))
+             (attr (org-export-read-attribute :attr_html useful-parent))
+             (path (org-hugo--attachment-rewrite-maybe raw-path info))
+             (alt-text (if (plist-get attr :alt) (plist-get attr :alt) "")))
+        (message "[org-neuron-link DBG] Handling Images %s %s" alt-text path)
+        ;; Neuron only supports linking to files in the static folder
+        (format "![%s](%s)" alt-text (concat "./static" path))))
+     (t ;; Let Hugo deal with it.
+      (progn
+        (message "[ox-neuron-link DBG] Calling out to ox-hugo-link!")
+        ;; org-hugo will help copy stuff to the right place and create
+        ;; the appropriate directories.
+        (org-hugo-link link desc info))))))
 
 ;; (org-element-link-parser)
 ;; (link (:type "brain-parent" :path

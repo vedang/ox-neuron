@@ -197,7 +197,7 @@ will be moved in this case too."
   "Take the BASE-DIR and DIR-PATHS collected in processing an entry.
 
 Build a path from BASE-DIR to this location using this information."
-  (message "[org-neuron--build-path DBG] %s %s" base-dir dir-paths)
+  ;; (message "[org-neuron--build-path DBG] %s %s" base-dir dir-paths)
   (concat base-dir (mapconcat #'identity (reverse dir-paths) "/") "/"))
 
 (defun org-neuron--get-entry-path (info)
@@ -254,7 +254,7 @@ contents of hidden elements.
 
 Return output file's name."
   (interactive)
-  (message "[ox-neuron-export-to-md DBG] Starting")
+  ;; (message "[ox-neuron-export-to-md DBG] Starting")
   (org-hugo--before-export-function nil)
   ;; Allow certain `ox-hugo' properties to be inherited.  It is
   ;; important to set the `org-use-property-inheritance' before
@@ -287,9 +287,7 @@ helps avoid processing of sub-sub-headings.
 
 This is done only if the elem is a sub-heading. It is expected
 that sub-headings will be exported into their own files."
-  (message "[org-neuron--elem-to-id DBG]")
-  ;; (message "[org-neuron--elem-to-id DBG] Elem: %s, Menu: %s"
-  ;;          elem menu-headline)
+  ;; (message "[org-neuron--elem-to-id DBG]")
   (let ((parent (org-element-property :parent elem)))
     ;; We only care about valid sub-headings
     (if (and (eq (org-element-type elem) 'headline)
@@ -320,9 +318,9 @@ that sub-headings will be exported into their own files."
                 (cons (org-element-property :ID elem)
                       org-neuron--seen-headings))
           nil)
-      (progn (message "[org-neuron--elem-to-id DBG] ignoring %s %s"
-                      (org-element-type elem)
-                      (org-element-property :title elem))
+      (progn ;; (message "[org-neuron--elem-to-id DBG] ignoring %s %s"
+             ;;          (org-element-type elem)
+             ;;          (org-element-property :title elem))
              elem))))
 
 (defun org-neuron--get-pre-processed-buffer ()
@@ -331,7 +329,7 @@ that sub-headings will be exported into their own files."
 Internal links to other subtrees are converted to external
 links."
   ;; Narrow down to just this subtree
-  (message "[org-neuron--get-pre-processed-buffer DBG]")
+  ;; (message "[org-neuron--get-pre-processed-buffer DBG]")
   (org-narrow-to-subtree)
   (let* ((buffer (generate-new-buffer (concat "*Ox-neuron Pre-processed "
                                               (buffer-name)
@@ -410,7 +408,7 @@ links."
             (org-element-map ast 'headline
               (apply-partially #'org-neuron--elem-to-id menu-headline))))
 
-        (message "[ox-neuron--preprocessing DBG] AST: %s" ast)
+        ;; (message "[ox-neuron--preprocessing DBG] AST: %s" ast)
         ;; Turn the AST with updated links into an Org document.
 
         (insert (org-element-interpret-data ast))
@@ -426,8 +424,8 @@ Note: This is an internal function, use `org-neuron-export-wim-to-md'
 instead.
 
 VISIBLE-ONLY controls whether to include hidden elements or not."
-  (message "[ox-neuron--export-subtree DBG] Subtree: %s, Starting"
-           (org-element-property :title subtree))
+  ;; (message "[ox-neuron--export-subtree DBG] Subtree: %s, Starting"
+  ;;          (org-element-property :title subtree))
   (let* ((info (org-combine-plists
                 (org-export--get-export-attributes
                  'neuron t visible-only)
@@ -437,8 +435,8 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
          (is-commented (org-element-property :commentedp subtree))
          (title (org-element-property :title subtree))
          is-excluded matched-exclude-tag ret)
-    (message "[ox-neuron--export-subtree DBG] Subtree: %s, Info built"
-             title)
+    ;; (message "[ox-neuron--export-subtree DBG] Subtree: %s, Info built"
+    ;;          title)
     (let ((all-tags (let ((org-use-tag-inheritance t))
                       (org-hugo--get-tags))))
       (when all-tags
@@ -446,8 +444,8 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
           (when (member exclude-tag all-tags)
             (setq matched-exclude-tag exclude-tag)
             (setq is-excluded t)))))
-    (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Tags Built"
-             title)
+    ;; (message "[ox-neuron--export-subtree-to-md DBG] Subtree: %s, Tags Built"
+    ;;          title)
     (cond
      (is-commented
       (message "[ox-neuron--export-subtree-to-md] `%s' was not exported (commented out)"
@@ -513,7 +511,7 @@ contents of hidden elements.
                 ;; Only map through subtrees where ID property is not
                 ;; empty.
                 "ID<>\"\""))))
-        (message "[ox-neuron--export-subtree-to-md DBG] Not in valid Subtree")
+        ;; (message "[ox-neuron--export-subtree-to-md DBG] Not in valid Subtree")
         (when valid-subtree-found
           (message "Point is not in a valid Neuron subtree; move to one and try again"))
         valid-subtree-found))))
@@ -534,7 +532,7 @@ This is an Export \"What I Mean\" function:
 When optional argument VISIBLE-ONLY is non-nil, don't export
 contents of hidden elements."
   (interactive "P")
-  (message "[ox-neuron-export-wim-to-md DBG] Starting %s" visible-only)
+  ;; (message "[ox-neuron-export-wim-to-md DBG] Starting %s" visible-only)
   (let (ret)
     (save-window-excursion
       (save-restriction

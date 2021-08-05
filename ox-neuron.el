@@ -472,11 +472,14 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
          (exclude-tags (plist-get info :exclude-tags))
          (is-commented (org-element-property :commentedp subtree))
          (title (org-element-property :title subtree))
+         (subtree-beg (org-element-property :begin subtree))
          is-excluded matched-exclude-tag ret)
     ;; (message "[ox-neuron--export-subtree DBG] Subtree: %s, Info built"
     ;;          title)
+    ;; Move point to the beginning of the subtree
+    (goto-char subtree-beg)
     (let ((all-tags (let ((org-use-tag-inheritance t))
-                      (org-hugo--get-tags))))
+                      (org-hugo--get-tags subtree-beg))))
       (when all-tags
         (dolist (exclude-tag exclude-tags)
           (when (member exclude-tag all-tags)
@@ -536,8 +539,21 @@ contents of hidden elements.
     (org-back-to-heading :invisible-ok))
   (let ((subtree (org-neuron--get-valid-subtree)))
     (if subtree
-        ;; If subtree is a valid post subtree, proceed ..
-        (org-neuron--export-subtree subtree visible-only)
+        ;; If subtree is a valid post subtree, export it and all of
+        ;; it's valid children posts as well.
+        (prog1 (org-neuron--export-subtree subtree visible-only)
+          (let ((ast (org-element-parse-buffer 'headline))
+                (parent-id (org-element-property :ID subtree)))
+            (org-element-map ast 'headline
+              (lambda (hl)
+                (when (and (org-neuron--valid-subtree hl)
+                           (equal parent-id
+                                  (org-element-property :ID (org-element-property :parent hl))))
+                  (goto-char (org-element-property :begin hl))
+                  (org-neuron--export-subtree-to-md visible-only))
+                ;; Explicitly return nil since I don't care about
+                ;; the return value.
+                nil))))
 
       ;; If the point is not in a valid subtree, check if there's a
       ;; valid subtree elsewhere in the same Org file.
@@ -556,7 +572,7 @@ contents of hidden elements.
 
 (defun org-neuron-export-wim-to-md
     (&optional visible-only)
-  "Export the current subtree/all subtrees/current file to Neuron posts.
+  "Export the current subtree and all it's subheadings to Neuron posts.
 
 This is an Export \"What I Mean\" function:
 

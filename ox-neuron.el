@@ -71,7 +71,10 @@ dirtree to show us the correct links."
   '(?N "Export to Neuron-compatible Markdown"
        ((?N "Subtree to Neuron Md files"
             (lambda (_a _s v _b)
-              (org-neuron-export-wim-to-md v)))))
+              (org-neuron-export-wim-to-md v)))
+        (?n "Entire File to Neuron Md files"
+            (lambda (_a _s v _b)
+              (org-neuron-export-file-to-md v)))))
   :translate-alist
   '((link . org-neuron-link))
   :options-alist
@@ -595,6 +598,33 @@ contents of hidden elements."
         (widen)
         (save-excursion
           (setq ret (org-neuron--export-subtree-to-md visible-only)))))
+    ret))
+
+(defun org-neuron-export-file-to-md
+    (&optional visible-only)
+  "Export all the \"top-level\" headings in the current file to Neuron posts.
+
+This action will recursively publish all the subheadings in the file as well.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements."
+  (interactive "P")
+  ;; (message "[ox-neuron-export-file-to-md DBG] Starting %s" visible-only)
+  (let (ret)
+    (save-window-excursion
+      (save-restriction
+        (widen)
+        (save-excursion
+          (let ((ast (org-element-parse-buffer 'headline)))
+            (org-element-map ast 'headline
+              (lambda (hl)
+                (when (and (= (org-element-property :level hl) 1)
+                           (org-neuron--valid-subtree hl))
+                  (goto-char (org-element-property :begin hl))
+                  (setq ret (org-neuron--export-subtree-to-md visible-only)))
+                ;; Explicitly return nil since I don't care about
+                ;; the return value.
+                nil))))))
     ret))
 
 (provide 'ox-neuron)

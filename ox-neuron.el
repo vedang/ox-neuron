@@ -93,7 +93,10 @@ INFO is a plist used as a communication channel."
     (cond
      ((member type '("custom-id" "id" ;; Handle ID links
                      "brain" "brain-child" "brain-parent" "brain-friend"))
-      (let ((destination (org-element-property :path link)))
+      (let ((destination (if (equal type "custom-id")
+                             (org-element-property :path link)
+                           (org-neuron--zettle-id
+                            (org-element-property :path link)))))
         (pcase (org-element-property :type link)
           ("brain-child"
            (if desc
@@ -148,16 +151,25 @@ INFO is a plist used as a communication channel."
 ;; (org-neuron-link *testlink2 "Explore something" nil)
 ;; "#[[4e18cf0b-0952-4074-9d3f-4f2497aab1e9|Explore something]]"
 
-(defun org-neuron--get-post-name (entry &optional title)
+(defun org-neuron--zettle-id (id)
+  "Given an ID, return the zettle-id we will use to as filename."
+  (string-limit id 8))
+
+(defun org-neuron--get-post-name (entry &optional dirpath)
   "Return the file-name for ENTRY Neuron post.
 
-If the optional arg TITLE is non-nil, return the :title property
-of this ENTRY. This is useful to give meaningful directory names
-when exporting posts."
-  (or (when title
-        (org-string-nw-p (org-element-property :title entry)))
-      (org-string-nw-p (org-element-property :EXPORT_FILE_NAME entry))
-      (org-element-property :ID entry)))
+If the EXPORT_FILE_NAME is index, and if we are building a
+DIRPATH (directory nesting), then as a special case return the ID
+of the entry instead of the EXPORT_FILE_NAME.
+
+This is because Neuron cannot handle an index.md file as well as
+a index/ folder."
+  (let ((filename (org-string-nw-p
+                   (org-element-property :EXPORT_FILE_NAME entry))))
+    (if (and (equal "index" filename) dirpath)
+        (org-neuron--zettle-id (org-element-property :ID entry))
+      (or filename
+          (org-neuron--zettle-id (org-element-property :ID entry))))))
 
 ;; * This is a test element
 ;; :PROPERTIES:
@@ -226,7 +238,7 @@ property or the `org-neuron-base-dir' local variable")))
           (catch 'break
             (while :infinite
               (let* ((entry (org-neuron--get-valid-subtree))
-                     (fname (org-neuron--get-post-name entry :title)))
+                     (fname (org-neuron--get-post-name entry :dirpath)))
                 (when (not entry)
                   (throw 'break (org-neuron--build-path base-dir dir-paths)))
                 (setq dir-paths (append dir-paths (list fname)))

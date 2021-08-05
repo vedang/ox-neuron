@@ -52,6 +52,15 @@ property for export."
   :type 'directory)
 ;;;###autoload (put 'org-neuron-base-dir 'safe-local-variable 'stringp)
 
+(defcustom org-neuron-insert-subheadings-as-children nil
+  "When non-nil, create a sub-heading called Children under the current post.
+
+Collect links to all child posts under this subheading. When nil,
+such a sub-heading is not created and instead we depend on
+dirtree to show us the correct links."
+  :group 'org-export-neuron
+  :type 'boolean)
+
 (setq org-hugo-front-matter-format "yaml"
       org-hugo-allow-spaces-in-tags nil
       org-hugo-date-format "%Y-%m-%dT%T")
@@ -323,6 +332,55 @@ that sub-headings will be exported into their own files."
              ;;          (org-element-property :title elem))
              elem))))
 
+(defun org-neuron--process-subheadings (ast)
+  "Internal function used to generate a pre-processed buffer.
+
+Takes the parse-tree as AST and removes all Neuron sub-headings
+in the post (since these will be separate Neuron posts).
+
+If `org-neuron-insert-subheadings-as-children' is t, this
+function collects links to all the children under a new
+sub-heading called Children.
+
+This function updates the AST, which the calling function is then
+supposed to use for further processing."
+  (let* ((main-headline (org-element-map ast 'headline
+                          (lambda (hl)
+                            (when (not (eq (org-element-type
+                                            (org-element-property :parent hl))
+                                           'headline))
+                              hl))
+                          nil t))
+         ;; insert-location returns the location of the first valid
+         ;; neuron subheading.
+         (insert-location (org-element-map ast 'headline
+                            (lambda (hl)
+                              (when (and (eq (org-element-type
+                                              (org-element-property :parent hl))
+                                             'headline)
+                                         (org-neuron--valid-subtree hl))
+                                hl))
+                            nil t))
+         (menu-title "Children")
+         (menu-headline (when insert-location
+                          (org-element-create
+                           'headline
+                           (list :level (+ 1
+                                           (org-element-property
+                                            :level main-headline))
+                                 :title menu-title
+                                 :raw-value menu-title
+                                 :pre-blank 1
+                                 :post-blank 1)))))
+    ;; (message "[ox-neuron--preprocessing DBG] Main: %s, Insert at: %s, Menu: %s"
+    ;;          main-headline insert-location menu-headline)
+    (when menu-headline
+      (when org-neuron-insert-subheadings-as-children
+        (org-element-insert-before menu-headline insert-location))
+      (setq org-neuron--seen-headings nil)
+      (org-element-map ast 'headline
+        (apply-partially #'org-neuron--elem-to-id menu-headline)))))
+
 (defun org-neuron--get-pre-processed-buffer ()
   "Return a pre-processed copy of the current buffer.
 
@@ -374,39 +432,7 @@ links."
               (org-element-adopt-elements block ""))))
 
         ;; Convert all sub-headings into brain-children / IDs
-        (let* ((main-headline (org-element-map ast 'headline
-                                (lambda (hl)
-                                  (when (not (eq (org-element-type
-                                                  (org-element-property :parent hl))
-                                                 'headline))
-                                    hl))
-                                nil t))
-               (insert-location (org-element-map ast 'headline
-                                  (lambda (hl)
-                                    (when (and (eq (org-element-type
-                                                    (org-element-property :parent hl))
-                                                   'headline)
-                                               (org-neuron--valid-subtree hl))
-                                      hl))
-                                  nil t))
-               (menu-title "Children")
-               (menu-headline (when insert-location
-                                (org-element-create
-                                 'headline
-                                 (list :level (+ 1
-                                                 (org-element-property
-                                                  :level main-headline))
-                                       :title menu-title
-                                       :raw-value menu-title
-                                       :pre-blank 1
-                                       :post-blank 1)))))
-          ;; (message "[ox-neuron--preprocessing DBG] Main: %s, Insert at: %s, Menu: %s"
-          ;;          main-headline insert-location menu-headline)
-          (when menu-headline
-            (org-element-insert-before menu-headline insert-location)
-            (setq org-neuron--seen-headings nil)
-            (org-element-map ast 'headline
-              (apply-partially #'org-neuron--elem-to-id menu-headline))))
+        (org-neuron--process-subheadings ast)
 
         ;; (message "[ox-neuron--preprocessing DBG] AST: %s" ast)
         ;; Turn the AST with updated links into an Org document.

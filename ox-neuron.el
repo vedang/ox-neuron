@@ -77,7 +77,9 @@ dirtree to show us the correct links."
   :options-alist
   '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
     (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
-    (:with-drawers nil nil nil)))
+    (:with-drawers nil nil nil)
+    ;; @TODO: Add front-matter support for NEURON_DIRTREE_DISPLAY
+    (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t)))
 
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.

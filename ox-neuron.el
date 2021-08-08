@@ -35,6 +35,12 @@
 ;;; Code:
 
 (require 'ox-hugo)
+;;; @TODO: Figure out how to make these changes local to the Neuron
+;;; export.
+(setq org-hugo-front-matter-format "yaml"
+      org-hugo-allow-spaces-in-tags nil
+      org-hugo-date-format "%Y-%m-%dT%T")
+
 
 (defgroup org-export-neuron nil
   "Options for exporting Org mode files to Neuron."
@@ -60,10 +66,6 @@ such a sub-heading is not created and instead we depend on
 dirtree to show us the correct links."
   :group 'org-export-neuron
   :type 'boolean)
-
-(setq org-hugo-front-matter-format "yaml"
-      org-hugo-allow-spaces-in-tags nil
-      org-hugo-date-format "%Y-%m-%dT%T")
 
 ;;neuron < hugo < blackfriday < md < html
 (org-export-define-derived-backend 'neuron 'hugo

@@ -10,7 +10,7 @@ This is a fully working but first-cut version of the exporter. I am able to gene
 
 * How to export your Org Mode notes?
 
-~ox-neuron~ treats any Org Mode heading with the ~:ID~ property as a valid heading for exporting to Neuron. Before starting an export operation, you need to define the variable ~org-neuron-base-dir~ to the file-path where you want to create the Neuron notes. ( Example: ~"/home/vedang/my_neuron_notes/"~ ). You also need to ensure that this path already exists. To create your Neuron static site, you need to create a ~neuron.dhall~ file at this path, with the following contents:
+~ox-neuron~ treats any Org Mode heading with the ~:ID~ property as a valid heading for exporting to Neuron. Before starting an export operation, you need to define the variable ~org-neuron-base-dir~ to the file-path where you want to create the Neuron notes. ( Example: =(setq org-neuron-base-dir "/home/vedang/my_neuron_notes/")= ). You also need to ensure that this path already exists. To create your Neuron static site, you need to create a ~neuron.dhall~ file at this path, with the following contents:
 #+begin_example
   { plugins = [ "neuronignore", "links", "uptree", "feed", "dirtree" ]}
 #+end_example
@@ -18,7 +18,9 @@ This is a fully working but first-cut version of the exporter. I am able to gene
 You are now ready to export your Org Mode notes to Neuron.
 
 The ~ox-neuron~ backend provides two ways to export data in an org-file:
-- Everything under the heading at point.
+- Everything under the heading at point. (~C-c C-e N N~)
   + If the point is in a valid Neuron heading, export the content to a Neuron file. The filename derives from the heading ~:ID~. For every valid subheading under this heading, export the content to new Neuron files.
-- Everything in the file.
+- Everything in the file. (~C-c C-e N n~)
   + Export every valid Neuron heading in the file.
+
+If you want to use a specific filename for an exported file, you can do so by setting the EXPORT_FILE_NAME property on the heading. For example, the ~index.md~ file can be created by adding =:EXPORT_FILE_NAME: index= property to the heading.

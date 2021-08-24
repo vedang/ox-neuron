@@ -1,6 +1,6 @@
 * ox-neuron: A Neuron Zettel Markdown back-end for Org Export Engine
 
-~ox-neuron~ implements a Markdown back-end for Org exporter. The exported Markdown is compatible with the Neuron Zettelkasten note-taking static site generator (https://neuron.zettel.page/). This exporter also handles `org-brain' relationships in notes (https://github.com/Kungsgeten/org-brain).
+~ox-neuron~ implements a Markdown back-end for Org exporter. The exported Markdown is compatible with the Neuron Zettelkasten note-taking static site generator (https://neuron.zettel.page/). This exporter also handles ~org-brain~ (https://github.com/Kungsgeten/org-brain) and ~org-roam~ (https://github.com/org-roam/org-roam) relationships in notes. Thus, you can use ~ox-neuron~ to generate beautiful websites for your second brain.
 
 This code builds on top of the ~ox-hugo~ exporter for the Hugo static site generator (https://ox-hugo.scripter.co) and uses a lot of it's code as-is.
 

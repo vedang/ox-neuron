@@ -602,9 +602,22 @@ contents of hidden elements."
           (setq ret (org-neuron--export-subtree-to-md visible-only)))))
     ret))
 
+(defun org-neuron--file-node-p ()
+  "Return t if the `current-buffer' has a File Level properties drawer.
+
+This indicates that the file should be considered as the top-most
+level Neuron post in this case."
+  (save-excursion
+    (goto-char (point-min))
+    (org-id-get)))
+
 (defun org-neuron-export-file-to-md
     (&optional visible-only)
   "Export all the \"top-level\" headings in the current file to Neuron posts.
+
+Further, if the file itself is a Valid Neuron post (i.e. it has a
+file-level properties drawer and title), then export that as the
+parent to all the top-level headings.
 
 This action will recursively publish all the subheadings in the file as well.
 
@@ -616,8 +629,22 @@ contents of hidden elements."
     (save-window-excursion
       (save-restriction
         (widen)
+        (when (org-neuron--file-node-p)
+          ;; do something about the file content itself
+          )
         (save-excursion
-          (let ((ast (org-element-parse-buffer 'headline)))
+          ;; Pass the file-level properties into subtree export calls,
+          ;; so that export has access to them.
+          (let ((info (org-combine-plists
+                       (org-export--get-export-attributes
+                        'neuron nil visible-only)
+                       (org-export--get-buffer-attributes)
+                       (org-export-get-environment 'neuron nil)
+                       (when (org-neuron--file-node-p)
+                         ;; copy the file-id into the plist for
+                         ;; nesting other headings under it.
+                         (plist-put nil :neuron-file-id (org-neuron--file-node-p)))))
+                (ast (org-element-parse-buffer 'headline)))
             (org-element-map ast 'headline
               (lambda (hl)
                 (when (and (= (org-element-property :level hl) 1)

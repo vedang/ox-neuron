@@ -43,5 +43,31 @@
        "* Headline\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
 	 (org-neuron--valid-subtree (org-element-at-point)))))
 
+(ert-deftest test-ox-neuron/org-neuron--file-node-p ()
+  "Files with a toplevel properties drawer with ID are considered Neuron posts.
+
+Note: The properties drawer should be the first thing in the file."
+  (should
+   (org-test-with-temp-text
+       ":PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+	 (org-neuron--file-node-p)))
+
+  (should-not
+   (org-test-with-temp-text
+       "#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+	 (org-neuron--file-node-p)))
+
+  (should
+   (equal 231
+          (org-test-with-temp-text
+              ":PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+	        (org-neuron--file-node-p)
+            (point))))
+
+  (should-not
+   (org-test-with-temp-text
+       "#+filetags: iota \n:PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+	 (org-neuron--file-node-p))))
+
 (provide 'test-ox-neuron)
 ;;; test-ox-neuron.el ends here

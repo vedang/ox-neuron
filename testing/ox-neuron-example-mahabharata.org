@@ -1,0 +1,19 @@
+:PROPERTIES:
+:ID:       2045bc2d-e46c-4a33-804c-07b317e57ed0
+:END:
+#+filetags: :mahabharata:
+#+neuron_base_dir: ./output/
+#+title: Notes on the Mahabharata
+
+* Bowing down to Nara and Narayana
+:PROPERTIES:
+:ID:       459ab7da-4c97-4e3a-aa24-c9a82467b2b5
+:END:
+
+The start to any discussion on the [[https://mahabharata.xyz][Mahabharata]] should happen after quoting the following prayer:
+
+#+attr_latex: :width 0.9\textwidth
+#+attr_html: :alt The Opening Prayer
+[[file:images/01-narayanam-namaskrutya.png]]
+
+Meaning: "Having bowed down to Narayan and Nara, and also Goddess Saraswati, one should recite the Jaya epic."

@@ -171,6 +171,23 @@
          nil t)
        nil)))))
 
+(ert-deftest test-ox-neuron/org-neuron--image-link ()
+  (should
+   (org-test-in-example-file "./ox-neuron-example-mahabharata.org"
+     (string-equal
+      "![The Opening Prayer](./static/ox-hugo/01-narayanam-namaskrutya.png)"
+      (let ((info (org-combine-plists
+                   (org-export--get-export-attributes
+                    'neuron t nil)
+                   (org-export--get-buffer-attributes)
+                   (org-export-get-environment 'neuron t)))
+            (image-link (org-element-map (org-element-parse-buffer) 'link
+                          (lambda (link)
+                            (when (org-export-inline-image-p link org-html-inline-image-rules)
+                              link))
+                          nil t)))
+        (org-neuron--image-link image-link info))))))
+
 (ert-deftest test-ox-neuron/org-neuron--valid-subtree ()
   "Headings with :ID: property are valid subtrees."
   (should-not

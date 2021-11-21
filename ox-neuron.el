@@ -116,6 +116,29 @@ An ID-LINK is a link to some other Org Mode content."
       ("brain-parent" (org-neuron--zettel-markup :parent zid desc))
       (_ (org-neuron--zettel-markup :sibling zid desc)))))
 
+(defun org-neuron--image-link (image-link info)
+  "Convert IMAGE-LINK, INFO into Neuron Markdown format.
+
+Copy the necessary resources into Neuron's static folder. This is
+directly taken from Hugo, with modifications for Neuron output.
+Neuron only supports linking to files in the static folder, and
+this is all I am supporting right now."
+  (let* ((raw-path (org-element-property :path image-link))
+         (parent (org-export-get-parent image-link))
+         (parent-type (org-element-type parent))
+         ;; If this is a hyper-linked image, it's parent type will
+         ;; be a link too. Get the parent of *that* link in that
+         ;; case.
+         (grand-parent (when (eq parent-type 'link)
+                         (org-export-get-parent parent)))
+         (useful-parent (if grand-parent grand-parent parent))
+         (attr (org-export-read-attribute :attr_html useful-parent))
+         (path (org-hugo--attachment-rewrite-maybe raw-path info))
+         (alt-text (if (plist-get attr :alt) (plist-get attr :alt) "")))
+    (message "[org-neuron-link DBG] Handling Images %s %s" alt-text path)
+    ;; Neuron only supports linking to files in the static folder
+    (format "![%s](%s)" alt-text (concat "./static" path))))
+
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.
 
@@ -133,26 +156,8 @@ INFO is a plist used as a communication channel."
                      ;; Handle Brain links
                      "brain" "brain-child" "brain-parent" "brain-friend"))
       (org-neuron--id-link link desc))
-     ;; Handle Images. This is directly taken from Hugo, with
-     ;; modifications for Neuron output. Neuron only supports linking
-     ;; to files in the static folder, and this is all I am supporting
-     ;; right now.
      ((org-export-inline-image-p link org-html-inline-image-rules)
-      (let* ((raw-path (org-element-property :path link))
-             (parent (org-export-get-parent link))
-             (parent-type (org-element-type parent))
-             ;; If this is a hyper-linked image, it's parent type will
-             ;; be a link too. Get the parent of *that* link in that
-             ;; case.
-             (grand-parent (when (eq parent-type 'link)
-                             (org-export-get-parent parent)))
-             (useful-parent (if grand-parent grand-parent parent))
-             (attr (org-export-read-attribute :attr_html useful-parent))
-             (path (org-hugo--attachment-rewrite-maybe raw-path info))
-             (alt-text (if (plist-get attr :alt) (plist-get attr :alt) "")))
-        (message "[org-neuron-link DBG] Handling Images %s %s" alt-text path)
-        ;; Neuron only supports linking to files in the static folder
-        (format "![%s](%s)" alt-text (concat "./static" path))))
+      (org-neuron--image-link link info))
      (t ;; Let Hugo deal with it.
       (progn
         (message "[ox-neuron-link DBG] Calling out to ox-hugo-link!")

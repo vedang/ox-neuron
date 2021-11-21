@@ -12,6 +12,7 @@ To run this test suite from a current Emacs instance simply load and run the tes
    #+BEGIN_SRC emacs-lisp :var here=(buffer-file-name)
      (add-to-list 'load-path (file-name-directory here))
      (add-to-list 'load-path (diredp-parent-dir (file-name-directory here)))
+     (mkdir (concat (file-name-directory here) "output/static") t)
      (require 'ox-neuron)
      (require 'test-ox-neuron)
    #+END_SRC

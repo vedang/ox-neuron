@@ -102,6 +102,20 @@ Neuron's dirtree plugin to show us the correct links."
   "Given an ID, return the zettle-id we will use to as filename."
   (string-limit id 8))
 
+(defun org-neuron--id-link (id-link desc)
+  "Convert an ID-LINK and DESC into Neuron Markdown format.
+
+An ID-LINK is a link to some other Org Mode content."
+  (let* ((type (org-element-property :type id-link))
+         (zid (if (equal type "custom-id")
+                  (org-element-property :path id-link)
+                (org-neuron--zettel-id
+                 (org-element-property :path id-link)))))
+    (pcase type
+      ("brain-child" (org-neuron--zettel-markup :child zid desc))
+      ("brain-parent" (org-neuron--zettel-markup :parent zid desc))
+      (_ (org-neuron--zettel-markup :sibling zid desc)))))
+
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.
 
@@ -118,14 +132,7 @@ INFO is a plist used as a communication channel."
                      "custom-id" "id"
                      ;; Handle Brain links
                      "brain" "brain-child" "brain-parent" "brain-friend"))
-      (let ((zid (if (equal type "custom-id")
-                     (org-element-property :path link)
-                   (org-neuron--zettel-id
-                    (org-element-property :path link)))))
-        (pcase (org-element-property :type link)
-          ("brain-child" (org-neuron--zettel-markup :child zid desc))
-          ("brain-parent" (org-neuron--zettel-markup :parent zid desc))
-          (_ (org-neuron--zettel-markup :sibling zid desc)))))
+      (org-neuron--id-link link desc))
      ;; Handle Images. This is directly taken from Hugo, with
      ;; modifications for Neuron output. Neuron only supports linking
      ;; to files in the static folder, and this is all I am supporting

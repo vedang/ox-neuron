@@ -57,15 +57,128 @@
    (string-equal "[[1234]]"
                  (org-neuron--zettel-markup :sibling "1234" nil))))
 
+(ert-deftest test-ox-neuron/org-neuron--id-link ()
+  "Links to Org Mode content are converted to Neuron Markdown correctly."
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[7e221a93|Yogurt]]"
+      (org-neuron--id-link (org-element-map (org-element-parse-buffer) 'link
+                             'identity nil t)
+                           "Yogurt"))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[7e221a93]]"
+      (org-neuron--id-link (org-element-map (org-element-parse-buffer) 'link
+                             'identity nil t)
+                           nil))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[7e221a93|Yogurt]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain" (org-element-property :type link))
+             link))
+         nil t)
+       "Yogurt"))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[7e221a93]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain" (org-element-property :type link))
+             link))
+         nil t)
+       nil))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[5b1688d9|The perfect way to make Dahi]]#"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-child" (org-element-property :type link))
+             link))
+         nil t)
+       "The perfect way to make Dahi"))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[5b1688d9]]#"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-child" (org-element-property :type link))
+             link))
+         nil t)
+       nil))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "#[[07caf760|Milk]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-parent" (org-element-property :type link))
+             link))
+         nil t)
+       "Milk"))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "#[[07caf760]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-parent" (org-element-property :type link))
+             link))
+         nil t)
+       nil))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[5b64fca9|Cheese]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-friend" (org-element-property :type link))
+             link))
+         nil t)
+       "Cheese"))))
+
+  (should
+   (org-test-in-example-file "./ox-neuron-example.org"
+     (string-equal
+      "[[5b64fca9]]"
+      (org-neuron--id-link
+       (org-element-map (org-element-parse-buffer) 'link
+         (lambda (link)
+           (when (equal "brain-friend" (org-element-property :type link))
+             link))
+         nil t)
+       nil)))))
+
 (ert-deftest test-ox-neuron/org-neuron--valid-subtree ()
   "Headings with :ID: property are valid subtrees."
   (should-not
-   (org-test-with-temp-text "* Headline\n*a* b"
+   (org-test-at-marker "./ox-neuron-example.org" "* Dahi"
 	 (org-neuron--valid-subtree (org-element-at-point))))
 
   (should
-   (org-test-with-temp-text
-       "* Headline\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+   (org-test-at-marker "./ox-neuron-example.org" "* Cheese"
 	 (org-neuron--valid-subtree (org-element-at-point)))))
 
 (ert-deftest test-ox-neuron/org-neuron--file-node-p ()
@@ -73,26 +186,19 @@
 
 Note: The properties drawer should be the first thing in the file."
   (should
-   (org-test-with-temp-text
-       ":PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
-	 (org-neuron--file-node-p)))
+   (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
+     (org-neuron--file-node-p)))
 
   (should-not
-   (org-test-with-temp-text
-       "#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+   (org-test-at-marker "./ox-neuron-example-no-file-node.org" "* Yogurt"
 	 (org-neuron--file-node-p)))
 
+  ;; Make sure org-neuron--file-node-p returns the correct ID
   (should
    (equal 231
-          (org-test-with-temp-text
-              ":PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+filetags: :iota: \n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
+          (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
 	        (org-neuron--file-node-p)
-            (point))))
-
-  (should-not
-   (org-test-with-temp-text
-       "#+filetags: iota \n:PROPERTIES:\n:ID:       07caf760-019b-4b7c-8b29-e1189490af31\n:END:\n#+neuron_base_dir: \"/home/vedang/src/data/\"\n#+title: Milk Products are the best\n\nWhat was life before I ever tasted Cheese? Paneer? Kharvas! \n\n<point>* Yogurt\n:PROPERTIES:\n:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539\n:END:"
-	 (org-neuron--file-node-p))))
+            (point)))))
 
 (provide 'test-ox-neuron)
 ;;; test-ox-neuron.el ends here

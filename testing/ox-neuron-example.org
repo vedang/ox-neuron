@@ -1,0 +1,33 @@
+:PROPERTIES:
+:ID: 07caf760-019b-4b7c-8b29-e1189490af31
+:END:
+#+filetags: :iota:
+#+neuron_base_dir: "/home/vedang/src/data/"
+#+title: Milk Products are the best
+
+What was life before I ever tasted Cheese? Paneer? Kharvas!
+
+* Yogurt
+:PROPERTIES:
+:ID:  7e221a93-6e26-414f-b2b1-1716a15c4539
+:END:
+
+* Dahi
+Dahi is another name for [[id:7e221a93-6e26-414f-b2b1-1716a15c4539][Yogurt]]. I am going to use this heading to test link export.
+
+- Testing with an external link: [[https://vedang.me][My Website]]
+- Testing with a brain-parent link: [[brain-parent:07caf760-019b-4b7c-8b29-e1189490af31][Milk]]
+- Testing with a brain-child link: [[brain-child:5b1688d9-1b9f-43ee-953d-5479c530e4f2][The Perfect Way]]
+- Testing with a brain-friend link: [[brain-friend:5b64fca9-be57-4c40-9553-87293a3d2beb][Cheese]]
+- Testing with a brain link: [[brain:7e221a93-6e26-414f-b2b1-1716a15c4539][Yogurt]]
+
+** The perfect way to make Dahi
+:PROPERTIES:
+:ID:       5b1688d9-1b9f-43ee-953d-5479c530e4f2
+:END:
+
+* Cheese
+:PROPERTIES:
+:ID:       5b64fca9-be57-4c40-9553-87293a3d2beb
+:END:
+Cheese is the only milk product I have tasted so far that was not independently invented in India as well. I wonder why?

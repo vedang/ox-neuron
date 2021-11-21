@@ -63,7 +63,7 @@ property for export."
 
 Collect links to all child posts under this subheading. When nil,
 such a sub-heading is not created and instead we depend on
-dirtree to show us the correct links."
+Neuron's dirtree plugin to show us the correct links."
   :group 'org-export-neuron
   :type 'boolean)
 
@@ -80,12 +80,15 @@ dirtree to show us the correct links."
   :translate-alist
   '((link . org-neuron-link))
   :options-alist
-  '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
-    (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir)
-    (:with-drawers nil nil nil)
+  '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
+    (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
+    (:with-drawers nil nil nil t)
     ;; @TODO: Add front-matter support for NEURON_DIRTREE_DISPLAY
-    (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t)))
+    (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t t)))
 
+(defun org-neuron--zettel-id (id)
+  "Given an ID, return the zettle-id we will use to as filename."
+  (string-limit id 8))
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.
 
@@ -158,10 +161,6 @@ INFO is a plist used as a communication channel."
 ;; (org-neuron-link *testlink2 "Explore something" nil)
 ;; "#[[4e18cf0b-0952-4074-9d3f-4f2497aab1e9|Explore something]]"
 
-(defun org-neuron--zettle-id (id)
-  "Given an ID, return the zettle-id we will use to as filename."
-  (string-limit id 8))
-
 (defun org-neuron--get-post-name (entry &optional dirpath)
   "Return the file-name for ENTRY Neuron post.
 
@@ -174,9 +173,9 @@ a index/ folder."
   (let ((filename (org-string-nw-p
                    (org-element-property :EXPORT_FILE_NAME entry))))
     (if (and (equal "index" filename) dirpath)
-        (org-neuron--zettle-id (org-element-property :ID entry))
+        (org-neuron--zettel-id (org-element-property :ID entry))
       (or filename
-          (org-neuron--zettle-id (org-element-property :ID entry))))))
+          (org-neuron--zettel-id (org-element-property :ID entry))))))
 
 ;; * This is a test element
 ;; :PROPERTIES:

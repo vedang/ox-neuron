@@ -32,6 +32,31 @@
          (concat (file-name-directory (locate-library "org"))
                  "../testing/lisp/test-ox.el"))
 
+(ert-deftest test-ox-neuron/org-neuron--zettel-markup ()
+  "Generate correct Zettel links in Markdown based on relationship."
+  (should
+   (string-equal "[[1234|Test Desc]]#"
+                 (org-neuron--zettel-markup :child "1234" "Test Desc")))
+  (should
+   (string-equal "[[1234]]#"
+                 (org-neuron--zettel-markup :child "1234" nil)))
+
+  (should
+   (string-equal "#[[1234|Test Desc]]"
+                 (org-neuron--zettel-markup :parent "1234" "Test Desc")))
+
+  (should
+   (string-equal "#[[1234]]"
+                 (org-neuron--zettel-markup :parent "1234" nil)))
+
+  (should
+   (string-equal "[[1234|Test Desc]]"
+                 (org-neuron--zettel-markup :sibling "1234" "Test Desc")))
+
+  (should
+   (string-equal "[[1234]]"
+                 (org-neuron--zettel-markup :sibling "1234" nil))))
+
 (ert-deftest test-ox-neuron/org-neuron--valid-subtree ()
   "Headings with :ID: property are valid subtrees."
   (should-not

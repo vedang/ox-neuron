@@ -86,9 +86,22 @@ Neuron's dirtree plugin to show us the correct links."
     ;; @TODO: Add front-matter support for NEURON_DIRTREE_DISPLAY
     (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t t)))
 
+(defun org-neuron--zettel-markup (ztype zid zdesc)
+  "Based on ZTYPE, convert ZID and ZDESC into Markdown expected by Neuron."
+  (if zdesc
+      (pcase ztype
+        (:child (format "[[%s|%s]]#" zid zdesc))
+        (:parent (format "#[[%s|%s]]" zid zdesc))
+        (:sibling (format "[[%s|%s]]" zid zdesc)))
+    (pcase ztype
+      (:child (format "[[%s]]#" zid))
+      (:parent (format "#[[%s]]" zid))
+      (:sibling (format "[[%s]]" zid)))))
+
 (defun org-neuron--zettel-id (id)
   "Given an ID, return the zettle-id we will use to as filename."
   (string-limit id 8))
+
 (defun org-neuron-link (link desc info)
   "Convert LINK to Neuron Markdown format.
 
@@ -101,25 +114,18 @@ INFO is a plist used as a communication channel."
   ;; (message "[org-neuron-link DBG] %s %s" link desc)
   (let* ((type (org-element-property :type link)))
     (cond
-     ((member type '("custom-id" "id" ;; Handle ID links
+     ((member type '(;; Handle ID links
+                     "custom-id" "id"
+                     ;; Handle Brain links
                      "brain" "brain-child" "brain-parent" "brain-friend"))
-      (let ((destination (if (equal type "custom-id")
-                             (org-element-property :path link)
-                           (org-neuron--zettle-id
-                            (org-element-property :path link)))))
+      (let ((zid (if (equal type "custom-id")
+                     (org-element-property :path link)
+                   (org-neuron--zettel-id
+                    (org-element-property :path link)))))
         (pcase (org-element-property :type link)
-          ("brain-child"
-           (if desc
-               (format "[[%s|%s]]#" destination desc)
-             (format "[[%s]]#" destination)))
-          ("brain-parent"
-           (if desc
-               (format "#[[%s|%s]]" destination desc)
-             (format "#[[%s]]" destination)))
-          (_
-           (if desc
-               (format "[[%s|%s]]" destination desc)
-             (format "[[%s]]" destination))))))
+          ("brain-child" (org-neuron--zettel-markup :child zid desc))
+          ("brain-parent" (org-neuron--zettel-markup :parent zid desc))
+          (_ (org-neuron--zettel-markup :sibling zid desc)))))
      ;; Handle Images. This is directly taken from Hugo, with
      ;; modifications for Neuron output. Neuron only supports linking
      ;; to files in the static folder, and this is all I am supporting

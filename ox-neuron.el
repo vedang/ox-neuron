@@ -165,19 +165,6 @@ INFO is a plist used as a communication channel."
         ;; the appropriate directories.
         (org-hugo-link link desc info))))))
 
-;; (org-element-link-parser)
-;; (link (:type "brain-parent" :path
-;;  "4e18cf0b-0952-4074-9d3f-4f2497aab1e9" :format bracket :raw-link
-;;  "brain-parent:4e18cf0b-0952-4074-9d3f-4f2497aab1e9" :application
-;;  nil :search-option nil :begin 1 :end 112 :contents-begin 54
-;;  :contents-end 110 :post-blank 0))
-
-;; (defvar *testlink2 (org-element-link-parser))
-;; *testlink2
-;; (org-neuron-link *testlink2 nil nil)
-;; "#[[4e18cf0b-0952-4074-9d3f-4f2497aab1e9]]"
-;; (org-neuron-link *testlink2 "Explore something" nil)
-;; "#[[4e18cf0b-0952-4074-9d3f-4f2497aab1e9|Explore something]]"
 
 (defun org-neuron--get-post-name (entry &optional dirpath)
   "Return the file-name for ENTRY Neuron post.
@@ -195,15 +182,6 @@ a index/ folder."
       (or filename
           (org-neuron--zettel-id (org-element-property :ID entry))))))
 
-;; * This is a test element
-;; :PROPERTIES:
-;; :ID:       541a96fc-56ca-4011-8ca0-1baa3cd755bb
-;; :END:
-;; - [[brain-parent:4e18cf0b-0952-4074-9d3f-4f2497aab1e9][export org-brain notes to the neuron zettlekasten format]]
-;; (org-neuron--get-post-name (org-element-at-point))
-;; "541a96fc-56ca-4011-8ca0-1baa3cd755bb"
-;; (org-neuron--get-post-name (org-element-at-point) :title)
-;; "\"This is a test element\""
 
 (defun org-neuron--valid-subtree (elem)
   "Return t if ELEM is a valid subtree, else nil."
@@ -236,8 +214,6 @@ will be moved in this case too."
         (unless level
           (throw 'break nil))))))
 
-;; (org-neuron--get-valid-subtree)
-;; "541a96fc-56ca-4011-8ca0-1baa3cd755bb"
 (defun org-neuron--build-path (base-dir dir-paths)
   "Take the BASE-DIR and DIR-PATHS collected in processing an entry.
 
@@ -313,12 +289,6 @@ Return output file's name."
     (prog1
         (org-export-to-file 'neuron outfile nil t visible-only)
       (org-hugo--after-export-function info outfile))))
-
-;; (let ((entry (org-element-at-point)))
-;;   (concat (org-neuron--get-entry-path (plist-put '() :neuron-base-dir "../"))
-;;           (org-neuron--get-post-name entry)
-;;           ".md"))
-;; ;; => "../18-parvans-the-index/e2bc89e2-5ad7-4d13-990c-f870d2f65b27.md"
 
 (defvar org-neuron--seen-headings '()
   "Internal variable for the elem-to-id translation.")

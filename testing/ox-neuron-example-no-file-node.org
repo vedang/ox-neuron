@@ -1,5 +1,5 @@
 #+filetags: :iota:
-#+neuron_base_dir: "/home/vedang/src/data/"
+#+neuron_base_dir: /home/vedang/src/data/
 #+title: Milk Products are the best
 
 What was life before I ever tasted Cheese? Paneer? Kharvas!
@@ -10,7 +10,7 @@ What was life before I ever tasted Cheese? Paneer? Kharvas!
 :END:
 
 * Dahi
-Dahi is another name for [[id:7e221a93-6e26-414f-b2b1-1716a15c4539][Yogurt]]
+<point>Dahi</point> is another name for [[id:7e221a93-6e26-414f-b2b1-1716a15c4539][Yogurt]]
 
 * Cheese
 :PROPERTIES:

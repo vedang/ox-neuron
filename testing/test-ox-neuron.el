@@ -31,6 +31,8 @@
 (require 'test-ox
          (concat (file-name-directory (locate-library "org"))
                  "../testing/lisp/test-ox.el"))
+;; Require system under test
+(require 'ox-neuron)
 
 (ert-deftest test-ox-neuron/org-neuron--zettel-markup ()
   "Generate correct Zettel links in Markdown based on relationship."
@@ -210,12 +212,11 @@ Note: The properties drawer should be the first thing in the file."
    (org-test-at-marker "./ox-neuron-example-no-file-node.org" "* Yogurt"
 	 (org-neuron--file-node-p)))
 
-  ;; Make sure org-neuron--file-node-p returns the correct ID
+  ;; Make sure org-neuron--file-node-p returns the correct ID (file node ID)
   (should
-   (equal 231
-          (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
-	        (org-neuron--file-node-p)
-            (point)))))
+   (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
+	 (string-equal "07caf760-019b-4b7c-8b29-e1189490af31"
+                   (org-neuron--file-node-p)))))
 
 (provide 'test-ox-neuron)
 ;;; test-ox-neuron.el ends here

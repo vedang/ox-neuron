@@ -1,14 +1,26 @@
 * ox-neuron: A Neuron Zettel Markdown back-end for Org Export Engine
+:PROPERTIES:
+:CREATED:  [2022-01-02 Sun 11:19]
+:ID:       36090166-5193-4416-9e23-dac2936e468c
+:END:
 
 ~ox-neuron~ implements a Markdown back-end for Org exporter. The exported Markdown is compatible with the Neuron Zettelkasten note-taking static site generator (https://neuron.zettel.page/). This exporter also handles ~org-brain~ (https://github.com/Kungsgeten/org-brain) and ~org-roam~ (https://github.com/org-roam/org-roam) relationships in notes. Thus, you can use ~ox-neuron~ to generate beautiful websites for your second brain.
 
 This code builds on top of the ~ox-hugo~ exporter for the Hugo static site generator (https://ox-hugo.scripter.co) and uses a lot of it's code as-is.
 
 * Status of the work
+:PROPERTIES:
+:CREATED:  [2022-01-02 Sun 11:19]
+:ID:       ee4d1c87-0cd0-4813-bf9b-504d4ef62067
+:END:
 
 This is a fully working but first-cut version of the exporter. I am able to generate full static sites from my Org Mode notes, but I know the edge-cases that are not handled. The Issues Tab captures all the pending work and edge-cases, so if you have a doubt, please read through it once.
 
 * How to export your Org Mode notes?
+:PROPERTIES:
+:CREATED:  [2022-01-02 Sun 11:19]
+:ID:       467d86a4-460e-42ed-9d1c-345ef5788b5c
+:END:
 
 ~ox-neuron~ treats any Org Mode heading with the ~:ID~ property as a valid heading for exporting to Neuron. Before starting an export operation, you need to define the variable ~org-neuron-base-dir~ to the file-path where you want to create the Neuron notes. ( Example: =(setq org-neuron-base-dir "/home/vedang/my_neuron_notes/")= ). You also need to ensure that this path already exists. To create your Neuron static site, you need to create a ~neuron.dhall~ file at this path, with the following contents:
 #+begin_example

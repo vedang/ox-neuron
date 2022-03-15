@@ -200,6 +200,31 @@
    (org-test-at-marker "./ox-neuron-example.org" "* Cheese"
 	 (org-neuron--valid-subtree (org-element-at-point)))))
 
+(ert-deftest test-ox-neuron/org-neuron--get-valid-post ()
+  "Point moves to nearest valid subtree above point, and element is returned."
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "<point>Dahi</point>"
+     (let ((element (org-neuron--get-valid-post)))
+       (string-equal "Yogurt" (org-element-property :title element)))))
+
+  (should-not
+   (org-test-at-marker "./ox-neuron-example-no-file-node.org" "<point>Dahi</point>"
+     (org-neuron--get-valid-post)))
+  ;; If the heading does not have :ID: but it is in a file which has a
+  ;; :PROPERTIES: drawer and :ID: field, it is still a valid post.
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "<point>Kharvas</point>"
+     (let ((tree (org-neuron--get-valid-post)))
+       (string-equal "07caf760-019b-4b7c-8b29-e1189490af31"
+                     (org-element-property :value
+                                           (org-element-map tree
+                                               'node-property 'identity nil t))))))
+  ;; If both the top-most heading as well as file do not have an :ID:,
+  ;; then the post is not valid.
+  (should-not
+   (org-test-at-marker "./ox-neuron-example-no-file-node.org" "<point>Dahi</point>"
+     (org-neuron--get-valid-post))))
+
 (ert-deftest test-ox-neuron/org-neuron--file-node-p ()
   "Files with a toplevel properties drawer with ID are considered Neuron posts.
 

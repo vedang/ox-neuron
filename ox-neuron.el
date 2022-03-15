@@ -165,54 +165,67 @@ INFO is a plist used as a communication channel."
         ;; the appropriate directories.
         (org-hugo-link link desc info))))))
 
+(defun org-neuron--file-node-p ()
+  "Return the file ID if the `current-buffer' has File Level properties drawer.
 
-(defun org-neuron--get-post-name (entry &optional dirpath)
+This indicates that the file should be considered as the top-most
+level Neuron post in this case."
+  (org-id-get (point-min)))
+
+(defun org-neuron--get-file-name (entry &optional fullpath)
   "Return the file-name for ENTRY Neuron post.
 
 If the EXPORT_FILE_NAME is index, and if we are building a
-DIRPATH (directory nesting), then as a special case return the ID
-of the entry instead of the EXPORT_FILE_NAME.
+FULLPATH (with full directory nesting), then as a special case
+return the ID of the entry instead of the EXPORT_FILE_NAME.
 
 This is because Neuron cannot handle an index.md file as well as
 a index/ folder."
   (let ((filename (org-string-nw-p
-                   (org-element-property :EXPORT_FILE_NAME entry))))
-    (if (and (equal "index" filename) dirpath)
-        (org-neuron--zettel-id (org-element-property :ID entry))
-      (or filename
-          (org-neuron--zettel-id (org-element-property :ID entry))))))
-
+                   (org-element-property :EXPORT_FILE_NAME entry)))
+        (node-id (or (org-element-property :ID entry)
+                     (with-temp-buffer
+                       (org-mode)
+                       (insert (org-element-interpret-data entry))
+                       (org-neuron--file-node-p)))))
+    (if (and (equal "index" filename) fullpath)
+        (org-neuron--zettel-id node-id)
+      (or filename (org-neuron--zettel-id node-id)))))
 
 (defun org-neuron--valid-subtree (elem)
   "Return t if ELEM is a valid subtree, else nil."
   (org-element-property :ID elem))
 
-(defun org-neuron--get-valid-subtree ()
-  "Return the Org element for a valid Neuron post subtree.
+(defun org-neuron--get-valid-post ()
+  "Return the Org element for a valid Neuron post.
 The condition to check validity is that the ID property is
-defined for the subtree element.
+defined for the heading / file element.
 
-As this function is intended to be called inside a valid Hugo
+As this function is intended to be called inside a valid Neuron
 post subtree, doing so also moves the point to the beginning of
-the heading of that subtree.
+the heading / file.
 
-Return nil if a valid Hugo post subtree is not found.  The point
-will be moved in this case too."
+Return nil if a valid Neuron post is not found. The point will be
+moved in this case too."
   (catch 'break
     (while :infinite
       (let* ((entry (org-element-at-point))
              (valid (org-neuron--valid-subtree entry))
-             (fname (org-neuron--get-post-name entry))
+             (fname (org-neuron--get-file-name entry))
              level)
         (when (and valid fname)
           (throw 'break entry))
         ;; Keep on jumping to the parent heading if the current entry
         ;; does not have an ID property.
         (setq level (org-up-heading-safe))
-        ;; If no more parent heading exists, break out of the loop
-        ;; and return nil
+        ;; If no more parent heading exists, check if the file itself
+        ;; is a Neuron Node. If so, return the contents of the file,
+        ;; else break out of the loop and return nil
         (unless level
-          (throw 'break nil))))))
+          (if (org-neuron--file-node-p)
+              (progn (goto-char (point-min))
+                     (throw 'break (org-element-parse-buffer)))
+            (throw 'break nil)))))))
 
 (defun org-neuron--build-path (base-dir dir-paths)
   "Take the BASE-DIR and DIR-PATHS collected in processing an entry.
@@ -237,8 +250,8 @@ property or the `org-neuron-base-dir' local variable")))
       (if level
           (catch 'break
             (while :infinite
-              (let* ((entry (org-neuron--get-valid-subtree))
-                     (fname (org-neuron--get-post-name entry :dirpath)))
+              (let* ((entry (org-neuron--get-valid-post))
+                     (fname (org-neuron--get-file-name entry :fullpath)))
                 (when (not entry)
                   (throw 'break (org-neuron--build-path base-dir dir-paths)))
                 (setq dir-paths (append dir-paths (list fname)))
@@ -501,7 +514,7 @@ VISIBLE-ONLY controls whether to include hidden elements or not."
                     (org-export--get-buffer-attributes)
                     (org-export-get-environment 'neuron t)))
              (pub-dir (org-neuron--get-pub-dir info))
-             (outfile (concat pub-dir (org-neuron--get-post-name entry) ".md"))
+             (outfile (concat pub-dir (org-neuron--get-file-name entry) ".md"))
              (buffer (org-neuron--get-pre-processed-buffer)))
         (with-current-buffer buffer
           (goto-char (point-min))
@@ -531,7 +544,7 @@ contents of hidden elements.
   ;; Publish only the current subtree
   (ignore-errors
     (org-back-to-heading :invisible-ok))
-  (let ((subtree (org-neuron--get-valid-subtree)))
+  (let ((subtree (org-neuron--get-valid-post)))
     (if subtree
         ;; If subtree is a valid post subtree, export it and all of
         ;; it's valid children posts as well.
@@ -588,15 +601,6 @@ contents of hidden elements."
         (save-excursion
           (setq ret (org-neuron--export-subtree-to-md visible-only)))))
     ret))
-
-(defun org-neuron--file-node-p ()
-  "Return t if the `current-buffer' has a File Level properties drawer.
-
-This indicates that the file should be considered as the top-most
-level Neuron post in this case."
-  (save-excursion
-    (goto-char (point-min))
-    (org-id-get)))
 
 (defun org-neuron-export-file-to-md
     (&optional visible-only)

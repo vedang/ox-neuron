@@ -301,7 +301,9 @@ Return output file's name."
                 (org-export-get-environment 'neuron t))))
     (prog1
         (org-export-to-file 'neuron outfile nil t visible-only)
-      (org-hugo--after-export-function info outfile))))
+      (org-hugo--after-1-export-function info outfile)
+      (unless org-hugo--disable-after-all-exports-hook
+        (org-hugo--after-all-exports-function)))))
 
 (defvar org-neuron--seen-headings '()
   "Internal variable for the elem-to-id translation.")

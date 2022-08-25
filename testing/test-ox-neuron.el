@@ -205,7 +205,8 @@
   (should
    (org-test-at-marker "./ox-neuron-example.org" "<point>Dahi</point>"
      (let ((element (org-neuron--get-valid-post)))
-       (string-equal "Yogurt" (org-element-property :title element)))))
+       (string-equal "7e221a93-6e26-414f-b2b1-1716a15c4539"
+                     (org-element-property :ID element)))))
 
   (should-not
    (org-test-at-marker "./ox-neuron-example-no-file-node.org" "<point>Dahi</point>"

@@ -10,6 +10,7 @@ What was life before I ever tasted Cheese? Paneer? Kharvas!
 * Yogurt
 :PROPERTIES:
 :ID:  7e221a93-6e26-414f-b2b1-1716a15c4539
+:EXPORT_FILE_NAME: yogurt-is-the-best
 :END:
 
 ** Dahi
@@ -24,6 +25,7 @@ What was life before I ever tasted Cheese? Paneer? Kharvas!
 *** The perfect way to make Dahi
 :PROPERTIES:
 :ID:       5b1688d9-1b9f-43ee-953d-5479c530e4f2
+:EXPORT_HUGO_SLUG: dahi-perfect-way
 :END:
 
 * Cheese

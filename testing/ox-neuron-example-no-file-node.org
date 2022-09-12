@@ -4,7 +4,7 @@
 
 What was life before I ever tasted Cheese? Paneer? Kharvas!
 
-* Yogurt
+* My Favorite Yogurt
 :PROPERTIES:
 :ID:  7e221a93-6e26-414f-b2b1-1716a15c4539
 :END:
@@ -12,7 +12,7 @@ What was life before I ever tasted Cheese? Paneer? Kharvas!
 * Dahi
 <point>Dahi</point> is another name for [[id:7e221a93-6e26-414f-b2b1-1716a15c4539][Yogurt]]
 
-* Cheese
+* Tu Cheese badi hai mast
 :PROPERTIES:
 :ID:       5b64fca9-be57-4c40-9553-87293a3d2beb
 :END:

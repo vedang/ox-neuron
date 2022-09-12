@@ -197,7 +197,7 @@
 	 (org-neuron--valid-subtree (org-element-at-point))))
 
   (should
-   (org-test-at-marker "./ox-neuron-example.org" "* Cheese"
+   (org-test-at-marker"./ox-neuron-example.org" "* Tu Cheese badi hai mast"
 	 (org-neuron--valid-subtree (org-element-at-point)))))
 
 (ert-deftest test-ox-neuron/org-neuron--get-valid-post ()
@@ -231,18 +231,49 @@
 
 Note: The properties drawer should be the first thing in the file."
   (should
-   (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
+   (org-test-at-marker "./ox-neuron-example.org" "* My Favorite Yogurt"
      (org-neuron--file-node-p)))
 
   (should-not
-   (org-test-at-marker "./ox-neuron-example-no-file-node.org" "* Yogurt"
+   (org-test-at-marker "./ox-neuron-example-no-file-node.org" "* My Favorite Yogurt"
 	 (org-neuron--file-node-p)))
 
   ;; Make sure org-neuron--file-node-p returns the correct ID (file node ID)
   (should
-   (org-test-at-marker "./ox-neuron-example.org" "* Yogurt"
+   (org-test-at-marker "./ox-neuron-example.org" "* My Favorite Yogurt"
 	 (string-equal "07caf760-019b-4b7c-8b29-e1189490af31"
                    (org-neuron--file-node-p)))))
+
+(ert-deftest test-ox-neuron/org-neuron--get-file-name ()
+  "Filenames should be generated correctly.
+
+Test filename generation and population into the
+`org-neuron-id-to-slug-hash` for all the different property
+drawer combinations, first with
+`org-neuron-export-human-readable-filenames` set to false, and
+then with it set to true."
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "* My Favorite Yogurt"
+     (string-equal "7e221a93"
+                   (org-neuron--get-file-name (org-element-at-point)))))
+
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "* My Favorite Yogurt"
+     (let ((org-neuron-export-human-readable-filenames t))
+       (string-equal "yogurt-is-the-best"
+                     (org-neuron--get-file-name (org-element-at-point))))))
+
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "The perfect way to make Dahi"
+     (let ((org-neuron-export-human-readable-filenames t))
+       (string-equal "dahi-perfect-way"
+                     (org-neuron--get-file-name (org-element-at-point))))))
+
+  (should
+   (org-test-at-marker "./ox-neuron-example.org" "Tu Cheese badi hai mast"
+     (let ((org-neuron-export-human-readable-filenames t))
+       (string-equal "5b64fca9-tu-cheese-badi-hai-mast"
+                     (org-neuron--get-file-name (org-element-at-point)))))))
 
 (provide 'test-ox-neuron)
 ;;; test-ox-neuron.el ends here

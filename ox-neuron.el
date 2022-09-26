@@ -60,12 +60,27 @@ property for export."
   :type 'directory)
 ;;;###autoload (put 'org-neuron-base-dir 'safe-local-variable 'stringp)
 
-(defcustom org-neuron-insert-subheadings-as-children nil
-  "When non-nil, create a sub-heading called Children under the current post.
+(defcustom org-neuron-child-menu-title "Children"
+  "The default name of the sub-heading under which Children links are gathered.
 
-Collect links to all child posts under this subheading. When nil,
-such a sub-heading is not created and instead we depend on
-Neuron's dirtree plugin to show us the correct links."
+External formats and programs may not have the concept of a
+property drawer, like `org-mode' does. In this case, `ox-neuron'
+gives the option of collecting `org-mode' property drawer Parent
+/ Children settings under a special menu item, which is called
+Children by default. This is controlled by the
+`org-neuron-insert-subheadings-as-children' variable."
+  :group 'org-export-neuron
+  :type 'string)
+
+(defcustom org-neuron-insert-subheadings-as-children nil
+  "When non-nil, create a sub-heading under the current post.
+
+Collect links to all child posts under this sub-heading. The name
+of this sub-heading is controlled by
+`org-neuron-child-menu-title'.
+
+When nil, such a sub-heading is not created and instead we depend
+on Neuron's dirtree plugin to show us the correct links."
   :group 'org-export-neuron
   :type 'boolean)
 
@@ -401,6 +416,8 @@ Return output file's name."
   "Given an ELEM, convert it to an ID/Brain link.
 
 Attach the ID / Brain link to the MENU-HEADLINE, for use later.
+Remove the ELEM from the main contents.
+
 SEEN-HEADINGS tracks sub-headings that have been processed. This
 helps avoid processing of sub-sub-headings.
 
@@ -418,9 +435,9 @@ that sub-headings will be exported into their own files."
         ;; Attach the new link object to the menu
         ;; Remove the sub-heading completely.
         (progn
-          (message "[org-neuron--elem-to-id DBG] extracting %s %s"
-                   (org-element-type elem)
-                   (org-element-property :title elem))
+          ;; (message "[org-neuron--elem-to-id DBG] extracting %s %s"
+          ;;          (org-element-type elem)
+          ;;          (org-element-property :title elem))
           (org-element-adopt-elements
               menu-headline
             (org-element-create
@@ -450,19 +467,21 @@ in the post (since these will be separate Neuron posts).
 
 If `org-neuron-insert-subheadings-as-children' is t, this
 function collects links to all the children under a new
-sub-heading called Children.
+sub-heading called `org-neuron-child-menu-title'.
 
 This function updates the AST, which the calling function is then
 supposed to use for further processing."
-  (let* ((main-headline (org-element-map ast 'headline
+  (let* (;; Return the first headline whose parent is not a headline.
+         ;; This is the top headline in the export area.
+         (main-headline (org-element-map ast 'headline
                           (lambda (hl)
                             (when (not (eq (org-element-type
                                             (org-element-property :parent hl))
                                            'headline))
                               hl))
                           nil t))
-         ;; insert-location returns the location of the first valid
-         ;; neuron subheading.
+         ;; Return the location of the first valid neuron subheading.
+         ;; This is where the child subheadings start from.
          (insert-location (org-element-map ast 'headline
                             (lambda (hl)
                               (when (and (eq (org-element-type
@@ -471,22 +490,31 @@ supposed to use for further processing."
                                          (org-neuron--valid-subtree hl))
                                 hl))
                             nil t))
-         (menu-title "Children")
+         ;; Create a new headline at this position. We will use this
+         ;; to capture all the children of the post (similar to a menu
+         ;; in a post). @TODO: In an ideal world, this should collect
+         ;; not just sub-headings, but all child associations of the
+         ;; post.
          (menu-headline (when insert-location
                           (org-element-create
                            'headline
                            (list :level (+ 1
                                            (org-element-property
                                             :level main-headline))
-                                 :title menu-title
-                                 :raw-value menu-title
+                                 :title org-neuron-child-menu-title
+                                 :raw-value org-neuron-child-menu-title
                                  :pre-blank 1
                                  :post-blank 1)))))
     ;; (message "[ox-neuron--preprocessing DBG] Main: %s, Insert at: %s, Menu: %s"
     ;;          main-headline insert-location menu-headline)
-    (when menu-headline
+    (when menu-headline ;; There is at least one subheading in the
+      ;; content. Create a new sub-heading to capture all children of
+      ;; the given headline.
       (when org-neuron-insert-subheadings-as-children
         (org-element-insert-before menu-headline insert-location))
+      ;; Remove all the valid neuron posts (subheadings) starting from
+      ;; the menu-headline subheading in the rest of the content. This
+      ;; is because these will become individual posts of their own.
       (setq org-neuron--seen-headings nil)
       (org-element-map ast 'headline
         (apply-partially #'org-neuron--elem-to-id menu-headline)))))

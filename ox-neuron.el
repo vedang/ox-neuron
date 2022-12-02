@@ -290,6 +290,9 @@ a index/ folder."
      ;; human-readable name should be used if user asks for it.
      (org-neuron-export-human-readable-filenames
       finalname)
+     ;; index is a special name, since it is the base of a website and
+     ;; all sites will need it.
+     ((equal "index" filename) "index")
      ;; Otherwise we should use just the zettel-id. **Note** that this
      ;; means that even if the user has specified a FILENAME or SLUG,
      ;; it is the ZETTEL-ID which is used. This is intentional, to

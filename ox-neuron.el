@@ -121,13 +121,170 @@ manner.")
             (lambda (_a _s v _b)
               (org-neuron-export-file-to-md v)))))
   :translate-alist
-  '((link . org-neuron-link))
+  '((link . org-neuron-link)
+    (inner-template . org-neuron-inner-template))
   :options-alist
   '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
     (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
     (:with-drawers nil nil nil t)
     ;; @TODO: Add front-matter support for NEURON_DIRTREE_DISPLAY
     (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t t)))
+
+(defun org-neuron--build-toc (info &optional n scope local)
+  "Return table of contents as a string.
+
+INFO is a plist used as a communication channel.
+
+Optional argument N, when non-nil, is a positive integer
+specifying the depth of the table.
+
+When optional argument SCOPE is non-nil, build a table of
+contents according to the specified element.
+
+When optional argument LOCAL is non-nil, build a table of
+contents according to the current heading."
+  (let* ((toc-heading
+          (unless local
+            (format "\n<div class=\"ox-neuron-toc-heading\">%s</div>\n"
+                    (org-html--translate "Table of Contents" info))))
+         (current-level nil)
+         (toc-items
+          (mapconcat
+           (lambda (heading)
+             (let* ((level-raw (org-export-get-relative-level heading info))
+                    (level (if scope
+                               (let* ((current-level-inner
+                                       (progn
+                                         (unless current-level
+                                           (setq current-level level-raw))
+                                         current-level))
+                                      (relative-level
+                                       (1+ (- level-raw current-level-inner))))
+                                 ;; (message (concat "[ox-neuron build-toc DBG] "
+                                 ;;                  "current-level-inner:%d relative-level:%d")
+                                 ;;          current-level-inner relative-level)
+                                 relative-level)
+                             level-raw))
+                    (indentation (make-string (* 4 (1- level)) ?\s))
+                    (todo (and (org-hugo--plist-get-true-p info :with-todo-keywords)
+                               (org-element-property :todo-keyword heading)))
+                    (todo-str (if todo
+                                  (concat (org-hugo--todo todo info) " ")
+                                ""))
+                    (heading-num-list (org-export-get-headline-number heading info))
+                    (number (if heading-num-list
+                                ;; (message "[ox-neuron TOC DBG] heading-num-list: %S" heading-num-list)
+                                (org-hugo--get-heading-number heading info :toc)
+                              ""))
+                    (toc-entry
+                     (format "[%s%s](#%s)"
+                             todo-str
+                             (org-export-data-with-backend
+                              (org-export-get-alt-title heading info)
+                              (org-export-toc-entry-backend 'hugo)
+                              info)
+                             (org-hugo--get-anchor heading info)))
+                    (tags (and (plist-get info :with-tags)
+                               (not (eq 'not-in-toc (plist-get info :with-tags)))
+                               (let ((tags (org-export-get-tags heading info)))
+                                 (and tags
+                                      (format ":%s:"
+                                              (mapconcat #'identity tags ":")))))))
+               ;; (message "[ox-neuron build-toc DBG] level:%d, number:%s" level number)
+               ;; (message "[ox-neuron build-toc DBG] indentation: %S" indentation)
+               ;; (message "[ox-neuron build-toc DBG] todo: %s | %s" todo todo-str)
+               (concat indentation "- " number toc-entry tags)))
+           (org-export-collect-headlines info n scope)
+           "\n"))                       ;Newline between TOC items
+         ;; Remove blank lines from in-between TOC items, which can
+         ;; get introduced when using the "UNNUMBERED: t" heading
+         ;; property.
+         (toc-items (org-string-nw-p
+                     (replace-regexp-in-string "\n\\{2,\\}" "\n" toc-items))))
+    ;; (message "[ox-neuron build-toc DBG] toc-items:%s" toc-items)
+    (when toc-items
+      (let ((toc-classes '("ox-neuron-toc"))
+            ;; `has-section-numbers' is non-nil if section numbers are
+            ;; present for even one heading.
+            (has-section-numbers (string-match-p "^\\s-*\\-\\s-<span class=\"section\\-num\"" toc-items)))
+        (when has-section-numbers
+          (push "has-section-numbers" toc-classes))
+        (when local
+          (push "local" toc-classes))
+        (concat (format "<div class=\"%s\">\n"
+                        (string-join (reverse toc-classes) " "))
+                "<div class=\"ox-neuron-toc-contents\">"
+                toc-heading    ;wrapping Markdown in HTML div's.
+                "<div class=\"ox-neuron-toc-items\">\n"
+                toc-items
+                "</div>\n"
+                "</div>\n"
+                "</div>\n")))))
+
+(defun org-neuron-inner-template (contents info)
+  "Return body of document after converting it to Hugo-compatible Markdown.
+CONTENTS is the transcoded contents string.  INFO is a plist
+holding export options."
+  (let* ((toc-level (plist-get info :with-toc))
+         (toc-level (if (and toc-level
+                             (not (wholenump toc-level)))
+                        (plist-get info :headline-levels)
+                      toc-level))
+         (toc (when (and toc-level
+                         (wholenump toc-level)
+                         ;; TOC will be exported only if toc-level is positive
+                         (> toc-level 0))
+                  (concat (org-neuron--build-toc info toc-level) "\n")))
+         ;; Handling the case of special blocks inside markdown quote
+         ;; blocks.
+         (contents (replace-regexp-in-string
+                    (concat "\\(\n\\s-*> \\)*"
+                            (regexp-quote org-hugo--trim-pre-marker))
+                    ;;      ^^^^^^^^ Markdown quote blocks have lines beginning with "> ".
+                    org-hugo--trim-pre-marker ; Keep the trim marker; it will be removed next.
+                    contents))
+         (contents (replace-regexp-in-string
+                    (concat "\\([[:space:]]\\|\n\\)*" (regexp-quote org-hugo--trim-pre-marker))
+                    "\n"
+                    contents))
+         ;; Trim stuff after selected exported elements
+         (contents (replace-regexp-in-string
+                    (concat (regexp-quote org-hugo--trim-post-marker)
+                            ;; Pull up the contents from the next
+                            ;; line, unless the next line is a list
+                            ;; item (-), a heading (#) or a code block
+                            ;; (`).
+                            "\\([[:space:]>]\\|\n\\)+\\([^-#`]\\)")
+                    " \\2" contents))
+         (contents (when (org-string-nw-p contents)
+                     (concat "<div class=\"ox-neuron-article\">\n"
+                             "<div class=\"ox-neuron-article-contents\">\n"
+                             contents
+                             "\n"
+                             "</div>\n"
+                             "</div>\n")))
+         (footnotes (org-blackfriday-footnote-section
+                     info (org-hugo--lang-cjk-p info)))
+         (footnotes (when footnotes
+                      (concat "<div class=\"ox-neuron-footnotes\">\n"
+                              "<div class=\"ox-neuron-footnotes-contents\">\n"
+                              footnotes
+                              "\n"
+                              "</div>\n"
+                              "</div>\n"))))
+    ;; Remove any extra blank lines between front-matter and the
+    ;; content #consistency
+    (if (or contents toc footnotes)
+      (string-trim-left
+       (concat
+        "<div class=\"ox-neuron-main\">\n"
+        toc
+        contents
+        footnotes
+        "</div>\n"))
+      ;; Empty string, we do not have anything to export. @TODO: add a
+      ;; debug message here?
+      "")))
 
 (defun org-neuron--zettel-markup (ztype zid zdesc)
   "Based on ZTYPE, convert ZID and ZDESC into Markdown expected by Neuron."

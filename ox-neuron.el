@@ -101,6 +101,16 @@ the help of `org-neuron-id-to-slug-hash'."
   :group 'org-export-neuron
   :type 'boolean)
 
+(defcustom org-neuron-export-title-in-article nil
+  "When non-nil, add the title of the post in the main article contents.
+
+The general expectation is that whoever is rendering the site
+will take the title from the metadata of the markdown. However,
+exporting the title into the article itself lets us style it
+properly so this is an optional way to do it."
+  :group 'org-export-neuron
+  :type 'boolean)
+
 (defvar org-neuron-id-to-slug-hash (make-hash-table :test 'equal)
   "Store a mapping from the IDs of valid posts, to their slugs.
 
@@ -127,6 +137,7 @@ manner.")
   '((:neuron-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
     (:hugo-base-dir "NEURON_BASE_DIR" nil org-neuron-base-dir t)
     (:with-drawers nil nil nil t)
+    (:with-title-in-article nil nil org-neuron-export-title-in-article t)
     ;; @TODO: Add front-matter support for NEURON_DIRTREE_DISPLAY
     (:neuron-dirtree-display "NEURON_DIRTREE_DISPLAY" nil t t)))
 
@@ -168,8 +179,7 @@ contents according to the current heading."
                     (indentation (make-string (* 4 (1- level)) ?\s))
                     (todo (and (org-hugo--plist-get-true-p info :with-todo-keywords)
                                (org-element-property :todo-keyword heading)))
-                    (todo-str (if todo
-                                  (concat (org-hugo--todo todo info) " ")
+                    (todo-str (if todo (concat (org-hugo--todo todo info) " ")
                                 ""))
                     (heading-num-list (org-export-get-headline-number heading info))
                     (number (if heading-num-list
@@ -214,7 +224,7 @@ contents according to the current heading."
         (concat (format "<div class=\"%s\">\n"
                         (string-join (reverse toc-classes) " "))
                 "<div class=\"ox-neuron-toc-contents\">"
-                toc-heading    ;wrapping Markdown in HTML div's.
+                toc-heading          ;wrapping Markdown in HTML div's.
                 "<div class=\"ox-neuron-toc-items\">\n"
                 toc-items
                 "</div>\n"
@@ -258,6 +268,10 @@ holding export options."
                     " \\2" contents))
          (contents (when (org-string-nw-p contents)
                      (concat "<div class=\"ox-neuron-article\">\n"
+                             (when org-neuron-export-title-in-article
+                               (concat "<h1 class=\"ox-neuron-article-heading\">"
+                                       (format "%s" (car (plist-get info :title)))
+                                       "</h1>\n"))
                              "<div class=\"ox-neuron-article-contents\">\n"
                              contents
                              "\n"
@@ -272,16 +286,18 @@ holding export options."
                               "\n"
                               "</div>\n"
                               "</div>\n"))))
+    ;; (message "[ox-neuron build-article DBG] article-title:%s" (plist-get info :title))
+
     ;; Remove any extra blank lines between front-matter and the
     ;; content #consistency
     (if (or contents toc footnotes)
-      (string-trim-left
-       (concat
-        "<div class=\"ox-neuron-main\">\n"
-        toc
-        contents
-        footnotes
-        "</div>\n"))
+        (string-trim-left
+         (concat
+          "<div class=\"ox-neuron-main\">\n"
+          toc
+          contents
+          footnotes
+          "</div>\n"))
       ;; Empty string, we do not have anything to export. @TODO: add a
       ;; debug message here?
       "")))

@@ -5,7 +5,7 @@
 ;; Author: Vedang Manerikar <vedang.manerikar@gmail.com>
 ;; Keywords: org, wp, markdown, zettelkasten
 ;; Package-Requires: ((emacs "26.3") (ox-hugo "0.12.1") (s "1.13.1))
-;; Version: 0.1
+;; Version: 0.2.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
